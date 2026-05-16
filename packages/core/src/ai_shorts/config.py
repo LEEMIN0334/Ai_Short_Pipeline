@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     r2_access_key_id: str = Field(default="", alias="R2_ACCESS_KEY_ID")
     r2_secret_access_key: str = Field(default="", alias="R2_SECRET_ACCESS_KEY")
     r2_bucket: str = Field(default="ai-shorts-media", alias="R2_BUCKET")
+    gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
+    gemini_model: str = Field(default="gemini-2.0-flash", alias="GEMINI_MODEL")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
