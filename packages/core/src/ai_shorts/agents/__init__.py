@@ -1,5 +1,6 @@
 from ai_shorts.agents.analyzer import (
     AnalyzerPolicy,
+    TrendAnalyzer,
     analyze_trend_scout_run,
 )
 from ai_shorts.agents.ass_generator import (
@@ -9,6 +10,7 @@ from ai_shorts.agents.ass_generator import (
     generate_ass_from_split,
 )
 from ai_shorts.agents.benchmark import (
+    BenchmarkAgent,
     BenchmarkPolicy,
     build_benchmark_template,
     build_benchmark_templates,
@@ -50,6 +52,7 @@ __all__ = [
     "ASSDocument",
     "ASSGeneratorPolicy",
     "AnalyzerPolicy",
+    "BenchmarkAgent",
     "BenchmarkPolicy",
     "FFmpegComposerPolicy",
     "FFmpegCompositionPlan",
@@ -62,6 +65,7 @@ __all__ = [
     "ResearchPackage",
     "ScriptWriterPolicy",
     "SplitterPolicy",
+    "TrendAnalyzer",
     "TrendFetch",
     "TrendScoutPolicy",
     "TrendScoutResult",
