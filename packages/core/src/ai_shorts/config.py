@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     r2_secret_access_key: str = Field(default="", alias="R2_SECRET_ACCESS_KEY")
     r2_bucket: str = Field(default="ai-shorts-media", alias="R2_BUCKET")
     youtube_api_key: str = Field(default="", alias="YOUTUBE_API_KEY")
+    reddit_client_id: str = Field(default="", alias="REDDIT_CLIENT_ID")
+    reddit_client_secret: str = Field(default="", alias="REDDIT_CLIENT_SECRET")
+    reddit_user_agent: str = Field(default="ai-shorts-studio/0.1", alias="REDDIT_USER_AGENT")
 
     model_config = SettingsConfigDict(env_file=(".env", "../../.env"), extra="ignore")
 
