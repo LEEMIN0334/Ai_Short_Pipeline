@@ -1,0 +1,33 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "~/.openclaw/workspace"
+    },
+    "list": [
+      {
+        "id": "pm",
+        "name": "AI Shorts Studio PM",
+        "workspace": "pm"
+      }
+    ]
+  },
+  "channels": {
+    "telegram": {
+      "dmPolicy": "pairing",
+      "allowFrom": [
+        "OWNER_TELEGRAM_ID",
+        "FRIEND_TELEGRAM_ID"
+      ]
+    },
+    "slack": {
+      "dmPolicy": "pairing",
+      "allowFrom": [
+        "OWNER_SLACK_ID",
+        "FRIEND_SLACK_ID"
+      ]
+    }
+  },
+  "tools": {
+    "profile": "coding"
+  }
+}

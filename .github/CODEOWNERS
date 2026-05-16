@@ -1,0 +1,8 @@
+# Default: both review
+* @LEEMIN0334
+
+# LeeMin-owned backend areas
+/packages/core/src/ai_shorts/adapters/ @LEEMIN0334
+/packages/core/src/ai_shorts/storage/ @LEEMIN0334
+/packages/core/src/ai_shorts/orchestration/ @LEEMIN0334
+/infra/migrations/ @LEEMIN0334
