@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main, LeeMin, CJLee]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Setup Python
+        run: uv python install 3.12
+      - name: Install deps
+        working-directory: packages/core
+        run: uv sync --extra dev
+      - name: Lint
+        working-directory: packages/core
+        run: uv run ruff check .
+      - name: Type check
+        working-directory: packages/core
+        run: uv run mypy src/
+      - name: Test
+        working-directory: packages/core
+        run: uv run pytest --cov=ai_shorts

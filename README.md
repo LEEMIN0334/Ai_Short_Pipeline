@@ -1,6 +1,19 @@
-# Ai_Short_Pipeline
+# AI Shorts Studio
 
-Use branch CJLee for CJLee work.
-Use branch LeeMin for LeeMin work.
+Backend and automation workspace for an AI shorts production pipeline.
 
-This main branch is intentionally kept as a lightweight landing branch.
+## Branches
+
+- `main`: integrated development baseline
+- `CJLee`: CJLee development branch
+- `LeeMin`: LeeMin development branch
+
+## Development
+
+```bash
+cd packages/core
+uv sync --extra dev
+uv run pytest
+uv run ruff check .
+uv run mypy src/
+```

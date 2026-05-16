@@ -1,0 +1,31 @@
+{
+  agents: {
+    defaults: {
+      workspace: "~/.openclaw/workspace",
+    },
+    list: [
+      {
+        id: "pm",
+      },
+    ],
+  },
+  channels: {
+    telegram: {
+      dmPolicy: "pairing",
+      allowFrom: [
+        "<owner-telegram-id>",
+        "<partner-telegram-id>",
+      ],
+    },
+    slack: {
+      dmPolicy: "pairing",
+      allowFrom: [
+        "<owner-slack-id>",
+        "<partner-slack-id>",
+      ],
+    },
+  },
+  tools: {
+    profile: "coding",
+  },
+}
