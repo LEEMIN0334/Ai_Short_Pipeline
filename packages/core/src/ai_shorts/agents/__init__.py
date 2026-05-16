@@ -7,6 +7,7 @@ from ai_shorts.agents.benchmark import (
     build_benchmark_template,
     build_benchmark_templates,
 )
+from ai_shorts.agents.qc_retry import QCRetryPolicy, evaluate_qc_retry
 from ai_shorts.agents.research_backend import (
     ResearchBackendPolicy,
     ResearchPackage,
@@ -33,6 +34,7 @@ from ai_shorts.agents.trend_scout import (
 __all__ = [
     "AnalyzerPolicy",
     "BenchmarkPolicy",
+    "QCRetryPolicy",
     "RejectedTrendItem",
     "ResearchBackendPolicy",
     "ResearchPackage",
@@ -48,6 +50,7 @@ __all__ = [
     "build_benchmark_templates",
     "build_research_package",
     "curate_trends",
+    "evaluate_qc_retry",
     "render_research_handoff",
     "run_trend_scout",
     "split_script",
