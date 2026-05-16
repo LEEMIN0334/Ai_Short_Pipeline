@@ -20,6 +20,7 @@ from ai_shorts.agents.ffmpeg_composer import (
     build_ffmpeg_composition_plan,
     run_ffmpeg_composition,
 )
+from ai_shorts.agents.final_qc import FinalQCPolicy, evaluate_final_qc
 from ai_shorts.agents.qc_retry import QCRetryPolicy, evaluate_qc_retry
 from ai_shorts.agents.research_backend import (
     ResearchBackendPolicy,
@@ -52,6 +53,7 @@ __all__ = [
     "FFmpegComposerPolicy",
     "FFmpegCompositionPlan",
     "FFmpegRenderResult",
+    "FinalQCPolicy",
     "QCRetryPolicy",
     "RejectedTrendItem",
     "ResearchBackendPolicy",
@@ -69,6 +71,7 @@ __all__ = [
     "build_ffmpeg_composition_plan",
     "build_research_package",
     "curate_trends",
+    "evaluate_final_qc",
     "evaluate_qc_retry",
     "format_ass_timestamp",
     "generate_ass_from_split",
