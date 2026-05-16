@@ -34,6 +34,6 @@ packages = ["src/ai_shorts"]
 strict = true
 
 [[tool.mypy.overrides]]
-module = ["asyncpg"]
+module = ["asyncpg", "celery"]
 ignore_missing_imports = true
 
