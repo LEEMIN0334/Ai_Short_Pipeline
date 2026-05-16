@@ -1,4 +1,6 @@
+import asyncio
 from collections.abc import Awaitable, Callable, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from math import log10
 from typing import Any
@@ -16,6 +18,7 @@ class TrendScoutPolicy(BaseModel):
     max_items: int = Field(default=20, ge=1)
     min_views: int = Field(default=0, ge=0)
     max_age_hours: int | None = Field(default=168, ge=1)
+    source_timeout_seconds: float | None = Field(default=30.0, gt=0)
     platform_weights: dict[Platform, float] = Field(
         default_factory=lambda: {
             Platform.INSTAGRAM: 1.1,
@@ -47,38 +50,86 @@ class TrendScoutRun(BaseModel):
     sources: list[TrendSourceReport]
 
 
+@dataclass(frozen=True)
+class _SourceCollection:
+    source_report: TrendSourceReport
+    items: list[TrendItem]
+
+
 async def run_trend_scout(
     sources: Mapping[str, TrendFetch],
     policy: TrendScoutPolicy | None = None,
     now: datetime | None = None,
+    concurrent: bool = True,
 ) -> TrendScoutRun:
     """Collect candidates from async sources, then apply deterministic curation."""
 
+    active_policy = policy or TrendScoutPolicy()
     candidates: list[TrendItem] = []
-    source_reports: list[TrendSourceReport] = []
 
-    for source_name, fetch in sources.items():
-        try:
-            source_items = list(await fetch())
-        except Exception as exc:
-            source_reports.append(
-                TrendSourceReport(
-                    source=source_name,
-                    items_collected=0,
-                    error=f"{type(exc).__name__}: {exc}",
-                )
-            )
-            continue
-
-        candidates.extend(source_items)
-        source_reports.append(
-            TrendSourceReport(source=source_name, items_collected=len(source_items))
-        )
+    source_reports = (
+        await _collect_sources_concurrently(sources, active_policy)
+        if concurrent
+        else [
+            await _collect_source(source_name, fetch, active_policy)
+            for source_name, fetch in sources.items()
+        ]
+    )
+    for report in source_reports:
+        candidates.extend(report.items)
 
     return TrendScoutRun(
-        result=curate_trends(candidates, policy=policy, now=now),
-        sources=source_reports,
+        result=curate_trends(candidates, policy=active_policy, now=now),
+        sources=[report.source_report for report in source_reports],
     )
+
+
+async def _collect_sources_concurrently(
+    sources: Mapping[str, TrendFetch],
+    policy: TrendScoutPolicy,
+) -> list["_SourceCollection"]:
+    tasks = [
+        _collect_source(source_name, fetch, policy)
+        for source_name, fetch in sources.items()
+    ]
+    if not tasks:
+        return []
+    return list(await asyncio.gather(*tasks))
+
+
+async def _collect_source(
+    source_name: str,
+    fetch: TrendFetch,
+    policy: TrendScoutPolicy,
+) -> "_SourceCollection":
+    try:
+        source_items = list(await _fetch_with_timeout(fetch, policy))
+    except Exception as exc:
+        return _SourceCollection(
+            source_report=TrendSourceReport(
+                source=source_name,
+                items_collected=0,
+                error=f"{type(exc).__name__}: {exc}",
+            ),
+            items=[],
+        )
+
+    return _SourceCollection(
+        source_report=TrendSourceReport(
+            source=source_name,
+            items_collected=len(source_items),
+        ),
+        items=source_items,
+    )
+
+
+async def _fetch_with_timeout(
+    fetch: TrendFetch,
+    policy: TrendScoutPolicy,
+) -> Sequence[TrendItem]:
+    if policy.source_timeout_seconds is None:
+        return await fetch()
+    return await asyncio.wait_for(fetch(), timeout=policy.source_timeout_seconds)
 
 
 def curate_trends(

@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -118,3 +119,40 @@ async def test_run_trend_scout_reports_failed_sources() -> None:
     assert run.sources[1].source == "failing"
     assert run.sources[1].items_collected == 0
     assert run.sources[1].error == "RuntimeError: rate limit"
+
+
+@pytest.mark.asyncio
+async def test_run_trend_scout_times_out_slow_sources() -> None:
+    now = datetime(2026, 5, 16, tzinfo=UTC)
+    policy = TrendScoutPolicy(source_timeout_seconds=0.01)
+
+    async def slow_source() -> list[TrendItem]:
+        await asyncio.sleep(1)
+        return [_trend("slow", views=1000)]
+
+    run = await run_trend_scout({"slow": slow_source}, policy=policy, now=now)
+
+    assert run.result.selected == []
+    assert run.sources[0].source == "slow"
+    assert run.sources[0].items_collected == 0
+    assert run.sources[0].error is not None
+    assert run.sources[0].error.startswith("TimeoutError")
+
+
+@pytest.mark.asyncio
+async def test_run_trend_scout_preserves_source_order_when_concurrent() -> None:
+    now = datetime(2026, 5, 16, tzinfo=UTC)
+
+    async def slower_source() -> list[TrendItem]:
+        await asyncio.sleep(0.02)
+        return [_trend("slower", views=2000)]
+
+    async def faster_source() -> list[TrendItem]:
+        return [_trend("faster", views=1000)]
+
+    run = await run_trend_scout(
+        {"slower": slower_source, "faster": faster_source},
+        now=now,
+    )
+
+    assert [report.source for report in run.sources] == ["slower", "faster"]
