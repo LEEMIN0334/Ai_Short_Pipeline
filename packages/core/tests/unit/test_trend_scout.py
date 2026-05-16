@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
-from ai_shorts.agents.trend_scout import TrendScoutPolicy, curate_trends
+import pytest
+from ai_shorts.agents.trend_scout import TrendScoutPolicy, curate_trends, run_trend_scout
 from ai_shorts.schemas.trend_item import Platform, TrendItem
 
 
@@ -74,3 +75,46 @@ def test_curate_trends_uses_category_from_raw_metadata() -> None:
     result = curate_trends([trend], now=now)
 
     assert result.selected[0].category == "comedy"
+
+
+@pytest.mark.asyncio
+async def test_run_trend_scout_collects_from_multiple_sources() -> None:
+    now = datetime(2026, 5, 16, tzinfo=UTC)
+
+    async def instagram_source() -> list[TrendItem]:
+        return [_trend("ig_1", views=500)]
+
+    async def youtube_source() -> list[TrendItem]:
+        return [_trend("yt_1", views=1500)]
+
+    run = await run_trend_scout(
+        {"instagram": instagram_source, "youtube": youtube_source},
+        now=now,
+    )
+
+    assert [report.source for report in run.sources] == ["instagram", "youtube"]
+    assert [report.items_collected for report in run.sources] == [1, 1]
+    assert [item.trend.source_id for item in run.result.selected] == ["yt_1", "ig_1"]
+
+
+@pytest.mark.asyncio
+async def test_run_trend_scout_reports_failed_sources() -> None:
+    now = datetime(2026, 5, 16, tzinfo=UTC)
+
+    async def working_source() -> list[TrendItem]:
+        return [_trend("ok", views=500)]
+
+    async def failing_source() -> list[TrendItem]:
+        msg = "rate limit"
+        raise RuntimeError(msg)
+
+    run = await run_trend_scout(
+        {"working": working_source, "failing": failing_source},
+        now=now,
+    )
+
+    assert [item.trend.source_id for item in run.result.selected] == ["ok"]
+    assert run.sources[0].error is None
+    assert run.sources[1].source == "failing"
+    assert run.sources[1].items_collected == 0
+    assert run.sources[1].error == "RuntimeError: rate limit"

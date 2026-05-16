@@ -1,3 +1,4 @@
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import UTC, datetime
 from math import log10
 from typing import Any
@@ -5,6 +6,8 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from ai_shorts.schemas.trend_item import Platform, ScoredTrendItem, TrendItem
+
+TrendFetch = Callable[[], Awaitable[Sequence[TrendItem]]]
 
 
 class TrendScoutPolicy(BaseModel):
@@ -31,6 +34,51 @@ class RejectedTrendItem(BaseModel):
 class TrendScoutResult(BaseModel):
     selected: list[ScoredTrendItem]
     rejected: list[RejectedTrendItem] = Field(default_factory=list)
+
+
+class TrendSourceReport(BaseModel):
+    source: str
+    items_collected: int = Field(ge=0)
+    error: str | None = None
+
+
+class TrendScoutRun(BaseModel):
+    result: TrendScoutResult
+    sources: list[TrendSourceReport]
+
+
+async def run_trend_scout(
+    sources: Mapping[str, TrendFetch],
+    policy: TrendScoutPolicy | None = None,
+    now: datetime | None = None,
+) -> TrendScoutRun:
+    """Collect candidates from async sources, then apply deterministic curation."""
+
+    candidates: list[TrendItem] = []
+    source_reports: list[TrendSourceReport] = []
+
+    for source_name, fetch in sources.items():
+        try:
+            source_items = list(await fetch())
+        except Exception as exc:
+            source_reports.append(
+                TrendSourceReport(
+                    source=source_name,
+                    items_collected=0,
+                    error=f"{type(exc).__name__}: {exc}",
+                )
+            )
+            continue
+
+        candidates.extend(source_items)
+        source_reports.append(
+            TrendSourceReport(source=source_name, items_collected=len(source_items))
+        )
+
+    return TrendScoutRun(
+        result=curate_trends(candidates, policy=policy, now=now),
+        sources=source_reports,
+    )
 
 
 def curate_trends(
