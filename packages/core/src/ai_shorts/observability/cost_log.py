@@ -1,8 +1,7 @@
-﻿import asyncio
+import asyncio
 import json
-from collections.abc import Awaitable, Callable
 
-from ai_shorts.adapters.base import CostEvent
+from ai_shorts.adapters.base import CostEvent, CostSink
 from ai_shorts.storage.postgres import get_conn
 
 _pending_cost_tasks: set[asyncio.Task[None]] = set()
@@ -24,19 +23,15 @@ async def write_cost_event(job_id: str, agent_id: str, event: CostEvent) -> None
         )
 
 
-def make_postgres_sink(job_id: str, agent_id: str) -> Callable[[CostEvent], Awaitable[None]]:
+def make_postgres_sink(job_id: str, agent_id: str) -> CostSink:
     async def sink(event: CostEvent) -> None:
         await write_cost_event(job_id=job_id, agent_id=agent_id, event=event)
 
     return sink
 
 
-def _forget_done_task(task: asyncio.Task[None]) -> None:
-    _pending_cost_tasks.discard(task)
-
-
-def schedule_cost_write(sink: Callable[[CostEvent], Awaitable[None]], event: CostEvent) -> None:
-    task = asyncio.create_task(sink(event))
+def schedule_cost_write(sink: CostSink, event: CostEvent) -> None:
+    task: asyncio.Task[None] = asyncio.create_task(sink(event))
     _pending_cost_tasks.add(task)
     task.add_done_callback(lambda _: _pending_cost_tasks.discard(task))
 
@@ -45,4 +40,3 @@ async def flush_pending_costs() -> None:
     if not _pending_cost_tasks:
         return
     await asyncio.gather(*list(_pending_cost_tasks))
-

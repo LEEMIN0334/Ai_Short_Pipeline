@@ -1,7 +1,6 @@
 ﻿from decimal import Decimal
 
 import pytest
-
 from ai_shorts.adapters._stub import StubAdapter
 from ai_shorts.adapters.base import CostEvent
 

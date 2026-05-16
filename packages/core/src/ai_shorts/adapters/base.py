@@ -1,6 +1,6 @@
-﻿from collections.abc import Awaitable
+from collections.abc import Callable, Coroutine
 from decimal import Decimal
-from typing import Protocol
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -12,9 +12,7 @@ class CostEvent(BaseModel):
     metadata: dict[str, object] = Field(default_factory=dict)
 
 
-class CostSink(Protocol):
-    def __call__(self, event: CostEvent) -> Awaitable[None]:
-        ...
+CostSink = Callable[[CostEvent], Coroutine[Any, Any, None]]
 
 
 class AdapterBase:
