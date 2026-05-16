@@ -18,6 +18,7 @@ from ai_shorts.agents.script_writer import (
     write_script_from_benchmark,
     write_scripts_for_package,
 )
+from ai_shorts.agents.splitter import SplitterPolicy, split_script
 from ai_shorts.agents.trend_scout import (
     RejectedTrendItem,
     TrendFetch,
@@ -36,6 +37,7 @@ __all__ = [
     "ResearchBackendPolicy",
     "ResearchPackage",
     "ScriptWriterPolicy",
+    "SplitterPolicy",
     "TrendFetch",
     "TrendScoutPolicy",
     "TrendScoutResult",
@@ -48,6 +50,7 @@ __all__ = [
     "curate_trends",
     "render_research_handoff",
     "run_trend_scout",
+    "split_script",
     "write_script_from_benchmark",
     "write_scripts_for_package",
 ]
