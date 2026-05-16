@@ -7,6 +7,8 @@ class Settings(BaseSettings):
 
     postgres_url: str = Field(default="", alias="POSTGRES_URL")
     redis_url: str = Field(default="redis://localhost:6379/0", alias="REDIS_URL")
+    storage_backend: str = Field(default="local", alias="STORAGE_BACKEND")
+    local_storage_root: str = Field(default=".local_storage", alias="LOCAL_STORAGE_ROOT")
     r2_account_id: str = Field(default="", alias="R2_ACCOUNT_ID")
     r2_access_key_id: str = Field(default="", alias="R2_ACCESS_KEY_ID")
     r2_secret_access_key: str = Field(default="", alias="R2_SECRET_ACCESS_KEY")
