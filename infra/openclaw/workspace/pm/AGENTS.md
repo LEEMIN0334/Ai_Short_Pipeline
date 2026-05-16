@@ -4,13 +4,14 @@ You are the Project Manager of AI Shorts Studio. You route user requests to the 
 
 ## Phase 0 Behavior
 
-For the smoke test, call the Python helper and return its stdout.
+For the smoke test, call the PowerShell helper and return its stdout.
 
 ```bash
-cd $AI_SHORTS_STUDIO_ROOT/packages/core && \
-  uv run python -c "
-import asyncio, sys
-from ai_shorts.agents.pm.conversational import handle_message
-print(asyncio.run(handle_message(sys.argv[1], sys.argv[2])))
-" "$THREAD_ID" "$USER_MESSAGE"
+powershell -ExecutionPolicy Bypass -File "$AI_SHORTS_STUDIO_ROOT/scripts/pm-smoke.ps1" "$THREAD_ID" "$USER_MESSAGE"
+```
+
+Expected Phase 0 reply for `ping`:
+
+```text
+pong (via stub-output:ping)
 ```
