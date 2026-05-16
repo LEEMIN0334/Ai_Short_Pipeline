@@ -15,6 +15,7 @@ from ai_shorts.orchestration.phase1 import (
     compile_phase1_dag_plan,
     render_handoff_task,
 )
+from ai_shorts.schemas.trend_item import Platform, TrendItem
 
 
 def test_create_celery_app_uses_redis_url_for_broker_and_backend() -> None:
@@ -96,3 +97,59 @@ def test_phase1_placeholder_tasks_advance_payload_stage() -> None:
     assert benchmarked["stage"] == "benchmarked"
     assert benchmarked["benchmark_slots"] == 2
     assert handoff["stage"] == "handoff_ready"
+
+
+def test_phase1_tasks_run_fixture_trend_pipeline() -> None:
+    trend = TrendItem(
+        source_id="ig_phase1_fixture",
+        platform=Platform.INSTAGRAM,
+        url="https://example.com/reel/ig_phase1_fixture",
+        title="Three-second pasta reveal",
+        view_count=80_000,
+        like_count=8_000,
+        comment_count=900,
+        share_count=400,
+        published_at=datetime(2026, 5, 16, 8, tzinfo=UTC),
+        collected_at=datetime(2026, 5, 16, 10, tzinfo=UTC),
+        raw={
+            "category": "food",
+            "duration_ms": 32_000,
+            "copy_button_text": "Copy the reveal structure",
+        },
+    )
+    payload = {
+        "job_id": "phase1_fixture",
+        "source_names": ["instagram"],
+        "max_templates": 1,
+        "requested_at": "2026-05-16T10:00:00Z",
+        "trend_scout_policy": {
+            "min_views": 100,
+            "max_items": 2,
+            "source_timeout_seconds": None,
+        },
+        "trend_items_by_source": {
+            "instagram": [trend.model_dump(mode="json")],
+        },
+    }
+
+    collected = collect_trends_task.run(payload)
+    analyzed = analyze_research_task.run(collected)
+    benchmarked = build_benchmarks_task.run(analyzed)
+    handoff = render_handoff_task.run(benchmarked)
+
+    assert collected["stage"] == "collected"
+    assert collected["collected_source_names"] == ["instagram"]
+    assert collected["trend_scout_run"]["result"]["selected"][0]["trend"]["source_id"] == (
+        "ig_phase1_fixture"
+    )
+    assert analyzed["stage"] == "analyzed"
+    assert analyzed["research_report"]["title"] == (
+        "Food Trend Brief: Three-second pasta reveal"
+    )
+    assert benchmarked["stage"] == "benchmarked"
+    assert benchmarked["benchmark_slots"] == 1
+    assert benchmarked["research_package"]["ready_for_generation"] is True
+    assert handoff["stage"] == "handoff_ready"
+    assert handoff["ready_for_generation"] is True
+    assert "# Research Handoff" in handoff["research_handoff_markdown"]
+    assert "Three-second pasta reveal" in handoff["research_handoff_markdown"]
