@@ -85,13 +85,25 @@ Person B tasks:
 - Task 5.2: Cost Guard Phase 2
 - Pair Task 5.4: Documentation and runbooks
 
-## Current Sprint
+## Current Status
 
-Start with Phase 0 Task 0.1.
+Updated on 2026-05-16 after integrating the `LeeMin` branch into `CJLee`.
 
-Acceptance criteria:
-- `packages/core` installs with `uv sync --extra dev`
-- `uv run pytest tests/test_smoke.py -v` passes from `packages/core`
-- `uv run ruff check .` passes from `packages/core`
-- `uv run mypy src/` passes from `packages/core`
-- GitHub CI mirrors the same checks
+Completed foundation coverage:
+- Phase 0 through Phase 5 backend foundations are present on `CJLee`.
+- Person B's Phase 1 collection, adapter, research, local storage, and DAG state work has been ported into `CJLee`.
+- Migration order is now `001_initial.sql` through `007_polish.sql`, with Phase 1 collection and orchestration before Phase 2 generation.
+- Analyzer and benchmark agents support both deterministic in-memory pipeline use and DB-backed integration smoke paths.
+- Integration tests cover cost logging, Instagram account pool acquisition, research persistence, run state lifecycle, and MVP pipeline gates.
+
+Validated gates:
+- `uv run --directory packages/core ruff check .`
+- `uv run --directory packages/core mypy src/`
+- `uv run --directory packages/core pytest -q`
+- `./scripts/phase0-verify.sh`
+- `git diff --check`
+
+Open follow-ups:
+- Run the skipped Postgres/R2/Redis integration tests against real service credentials.
+- Replace placeholder deep research adapters with the final OpenClaw/Grok execution path.
+- Replace the Phase 1 Instagram fetcher foundation with the approved live fetch implementation.
