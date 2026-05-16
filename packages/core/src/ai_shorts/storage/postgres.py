@@ -15,7 +15,7 @@ async def get_conn() -> AsyncIterator[asyncpg.Connection]:
         msg = "POSTGRES_URL is required to open a Postgres connection"
         raise RuntimeError(msg)
 
-    conn = await asyncpg.connect(settings.postgres_url)
+    conn = await asyncpg.connect(settings.postgres_url, statement_cache_size=0)
     try:
         yield conn
     finally:

@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     r2_secret_access_key: str = Field(default="", alias="R2_SECRET_ACCESS_KEY")
     r2_bucket: str = Field(default="ai-shorts-media", alias="R2_BUCKET")
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=(".env", "../../.env"), extra="ignore")
 
 
 def get_settings() -> Settings:
