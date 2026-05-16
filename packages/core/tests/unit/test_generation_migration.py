@@ -2,13 +2,18 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[4]
 MIGRATIONS_DIR = ROOT_DIR / "infra" / "migrations"
-GENERATION_MIGRATION = MIGRATIONS_DIR / "002_generation.sql"
+GENERATION_MIGRATION = MIGRATIONS_DIR / "004_generation.sql"
 
 
 def test_generation_migration_is_ordered_after_initial_migration() -> None:
     migration_names = sorted(path.name for path in MIGRATIONS_DIR.glob("*.sql"))
 
-    assert migration_names[:2] == ["001_initial.sql", "002_generation.sql"]
+    assert migration_names[:4] == [
+        "001_initial.sql",
+        "002_phase1_collection.sql",
+        "003_phase1_orchestration.sql",
+        "004_generation.sql",
+    ]
 
 
 def test_generation_migration_defines_phase2_tables_and_indexes() -> None:

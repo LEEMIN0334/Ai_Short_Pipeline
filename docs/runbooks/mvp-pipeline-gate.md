@@ -75,17 +75,19 @@ rg -n "TOKEN|SECRET|PASSWORD|API_KEY|PRIVATE|gho_|sk-" . \
   --glob '!packages/core/.coverage'
 ```
 
-Expected findings are only placeholder names such as `GEMINI_API_KEY`, `TYPECAST_API_KEY`, and `R2_SECRET_ACCESS_KEY`.
+Expected findings are only placeholder names such as `GEMINI_API_KEY`, `TYPECAST_API_KEY`, `YOUTUBE_API_KEY`, `REDDIT_CLIENT_SECRET`, and `R2_SECRET_ACCESS_KEY`.
 
 ## Migration order
 
 Apply migrations in lexical order:
 
 1. `001_initial.sql`
-2. `002_generation.sql`
-3. `003_composition.sql`
-4. `004_approval.sql`
-5. `005_polish.sql`
+2. `002_phase1_collection.sql`
+3. `003_phase1_orchestration.sql`
+4. `004_generation.sql`
+5. `005_composition.sql`
+6. `006_approval.sql`
+7. `007_polish.sql`
 
 The unit migration tests assert this order.
 

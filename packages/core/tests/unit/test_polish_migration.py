@@ -2,18 +2,20 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[4]
 MIGRATIONS_DIR = ROOT_DIR / "infra" / "migrations"
-POLISH_MIGRATION = MIGRATIONS_DIR / "005_polish.sql"
+POLISH_MIGRATION = MIGRATIONS_DIR / "007_polish.sql"
 
 
 def test_polish_migration_is_ordered_after_approval_migration() -> None:
     migration_names = sorted(path.name for path in MIGRATIONS_DIR.glob("*.sql"))
 
-    assert migration_names[:5] == [
+    assert migration_names[:7] == [
         "001_initial.sql",
-        "002_generation.sql",
-        "003_composition.sql",
-        "004_approval.sql",
-        "005_polish.sql",
+        "002_phase1_collection.sql",
+        "003_phase1_orchestration.sql",
+        "004_generation.sql",
+        "005_composition.sql",
+        "006_approval.sql",
+        "007_polish.sql",
     ]
 
 

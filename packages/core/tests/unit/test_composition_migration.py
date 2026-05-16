@@ -2,16 +2,18 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[4]
 MIGRATIONS_DIR = ROOT_DIR / "infra" / "migrations"
-COMPOSITION_MIGRATION = MIGRATIONS_DIR / "003_composition.sql"
+COMPOSITION_MIGRATION = MIGRATIONS_DIR / "005_composition.sql"
 
 
 def test_composition_migration_is_ordered_after_generation_migration() -> None:
     migration_names = sorted(path.name for path in MIGRATIONS_DIR.glob("*.sql"))
 
-    assert migration_names[:3] == [
+    assert migration_names[:5] == [
         "001_initial.sql",
-        "002_generation.sql",
-        "003_composition.sql",
+        "002_phase1_collection.sql",
+        "003_phase1_orchestration.sql",
+        "004_generation.sql",
+        "005_composition.sql",
     ]
 
 
