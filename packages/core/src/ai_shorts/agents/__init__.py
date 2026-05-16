@@ -2,6 +2,12 @@ from ai_shorts.agents.analyzer import (
     AnalyzerPolicy,
     analyze_trend_scout_run,
 )
+from ai_shorts.agents.ass_generator import (
+    ASSDocument,
+    ASSGeneratorPolicy,
+    format_ass_timestamp,
+    generate_ass_from_split,
+)
 from ai_shorts.agents.benchmark import (
     BenchmarkPolicy,
     build_benchmark_template,
@@ -32,6 +38,8 @@ from ai_shorts.agents.trend_scout import (
 )
 
 __all__ = [
+    "ASSDocument",
+    "ASSGeneratorPolicy",
     "AnalyzerPolicy",
     "BenchmarkPolicy",
     "QCRetryPolicy",
@@ -51,6 +59,8 @@ __all__ = [
     "build_research_package",
     "curate_trends",
     "evaluate_qc_retry",
+    "format_ass_timestamp",
+    "generate_ass_from_split",
     "render_research_handoff",
     "run_trend_scout",
     "split_script",
