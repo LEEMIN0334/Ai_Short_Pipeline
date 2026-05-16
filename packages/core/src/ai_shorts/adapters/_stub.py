@@ -1,4 +1,4 @@
-﻿from decimal import Decimal
+from decimal import Decimal
 
 from ai_shorts.adapters.base import AdapterBase, CostSink
 

@@ -11,6 +11,7 @@ dependencies = [
     "httpx>=0.27",
     "structlog>=24.1",
     "boto3>=1.34",
+    "redis>=5.0",
 ]
 
 [project.optional-dependencies]
@@ -32,8 +33,13 @@ packages = ["src/ai_shorts"]
 
 [tool.mypy]
 strict = true
+python_version = "3.12"
+files = ["src/ai_shorts"]
 
 [[tool.mypy.overrides]]
-module = ["asyncpg", "celery"]
+module = ["asyncpg", "asyncpg.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["celery", "celery.*"]
+ignore_missing_imports = true

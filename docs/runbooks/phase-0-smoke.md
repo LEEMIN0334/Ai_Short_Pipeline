@@ -8,6 +8,8 @@ From the repository root:
 .\scripts\pm-smoke.ps1 local_pm_smoke ping
 ```
 
+Set `POSTGRES_URL` first when using `ping`, because the stub adapter records a cost event in `cost_log`.
+
 Expected output:
 
 ```text
@@ -48,8 +50,8 @@ $env:AI_SHORTS_STUDIO_ROOT="C:\Users\dlals\Documents\Ai_Short_Pipeline"
 
 ## Gate Checks
 
-- `uv run ruff check .`
-- `uv run mypy src/`
-- `uv run pytest -v`
+- `uv run --directory packages/core ruff check .`
+- `uv run --directory packages/core mypy src/`
+- `uv run --directory packages/core pytest -v`
 - Local PM smoke returns `pong`
 - `cost_log` records the PM smoke event

@@ -1,4 +1,4 @@
-﻿from ai_shorts.adapters._stub import StubAdapter
+from ai_shorts.adapters._stub import StubAdapter
 from ai_shorts.observability.cost_log import make_postgres_sink
 
 

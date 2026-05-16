@@ -1,4 +1,4 @@
-﻿from datetime import UTC, datetime
+from datetime import UTC, datetime
 
 from ai_shorts.schemas.trend_item import Platform, TrendItem
 

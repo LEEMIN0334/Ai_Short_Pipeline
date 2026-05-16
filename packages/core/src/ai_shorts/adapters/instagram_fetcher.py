@@ -1,4 +1,4 @@
-﻿import json
+import json
 from datetime import UTC, datetime
 from decimal import Decimal
 from enum import StrEnum
@@ -134,7 +134,11 @@ class InstagramFetcher(AdapterBase):
 
     async def fetch_reel(self, url: str, account: InstagramAccount | None = None) -> InstagramMedia:
         _ = url
-        selected_account = account or await self.acquire_account()
+        try:
+            selected_account = account or await self.acquire_account()
+        except RuntimeError as exc:
+            msg = "Instagram fetch requires an active account with session_ref"
+            raise InstagramSessionRequiredError(msg) from exc
         if selected_account is None or selected_account.session_ref is None:
             msg = "Instagram fetch requires an active account with session_ref"
             raise InstagramSessionRequiredError(msg)

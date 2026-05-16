@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from ai_shorts.adapters.instagram_fetcher import InstagramAccountStatus, InstagramFetcher
 from ai_shorts.config import get_settings
 from ai_shorts.storage.postgres import get_conn

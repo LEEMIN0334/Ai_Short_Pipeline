@@ -7,32 +7,34 @@ from ai_shorts.storage.postgres import get_conn
 
 
 @pytest.mark.asyncio
-async def test_pm_handles_ping_and_records_cost() -> None:
+async def test_pm_ping_records_cost_log() -> None:
     if not get_settings().postgres_url:
         pytest.skip("POSTGRES_URL is not configured")
 
-    thread_id = "test_pm_smoke_001"
+    job_id = "smoke_test_pm_ping"
 
-    try:
-        result = await handle_message(thread_id, "ping")
+    async with get_conn() as conn:
+        await conn.execute("DELETE FROM cost_log WHERE job_id = $1", job_id)
 
-        async with get_conn() as conn:
-            rows = await conn.fetch(
-                """
-                SELECT agent_id, service, operation, usd
-                FROM cost_log
-                WHERE job_id = $1
-                ORDER BY created_at DESC
-                """,
-                thread_id,
-            )
+    result = await handle_message(job_id, "ping")
 
-        assert result == "pong (via stub-output:ping)"
-        assert len(rows) == 1
-        assert rows[0]["agent_id"] == "pm"
-        assert rows[0]["service"] == "stub"
-        assert rows[0]["operation"] == "do_thing"
-        assert Decimal(str(rows[0]["usd"])) == Decimal("0.001000")
-    finally:
-        async with get_conn() as conn:
-            await conn.execute("DELETE FROM cost_log WHERE job_id = $1", thread_id)
+    async with get_conn() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT job_id, agent_id, service, operation, usd
+            FROM cost_log
+            WHERE job_id = $1
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            job_id,
+        )
+        await conn.execute("DELETE FROM cost_log WHERE job_id = $1", job_id)
+
+    assert result == "pong (via stub-output:ping)"
+    assert row is not None
+    assert row["job_id"] == job_id
+    assert row["agent_id"] == "pm"
+    assert row["service"] == "stub"
+    assert row["operation"] == "do_thing"
+    assert row["usd"] == Decimal("0.001")

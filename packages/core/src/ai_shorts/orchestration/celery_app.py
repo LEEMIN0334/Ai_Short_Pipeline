@@ -1,24 +1,29 @@
+from typing import cast
+
 from celery import Celery
 
-from ai_shorts.config import get_settings
+from ai_shorts.config import Settings, get_settings
 
 
-def create_celery_app() -> Celery:
-    settings = get_settings()
+def create_celery_app(settings: Settings | None = None) -> Celery:
+    """Create the shared Celery app for AI Shorts background work."""
+
+    active_settings = settings or get_settings()
     app = Celery(
         "ai_shorts",
-        broker=settings.redis_url,
-        backend=settings.redis_url,
-        include=["ai_shorts.orchestration.tasks"],
+        broker=active_settings.redis_url,
+        backend=active_settings.redis_url,
+        include=["ai_shorts.orchestration.phase1"],
     )
     app.conf.update(
-        task_serializer="json",
-        result_serializer="json",
         accept_content=["json"],
-        timezone="UTC",
         enable_utc=True,
+        result_serializer="json",
+        task_default_queue="ai_shorts",
+        task_serializer="json",
+        timezone="UTC",
     )
-    return app
+    return cast(Celery, app)
 
 
 celery_app = create_celery_app()

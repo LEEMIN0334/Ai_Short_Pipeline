@@ -1,4 +1,4 @@
-﻿from pydantic import Field
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     r2_access_key_id: str = Field(default="", alias="R2_ACCESS_KEY_ID")
     r2_secret_access_key: str = Field(default="", alias="R2_SECRET_ACCESS_KEY")
     r2_bucket: str = Field(default="ai-shorts-media", alias="R2_BUCKET")
+    gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
+    gemini_model: str = Field(default="gemini-2.0-flash", alias="GEMINI_MODEL")
+    typecast_api_key: str = Field(default="", alias="TYPECAST_API_KEY")
+    typecast_voice_id: str = Field(default="", alias="TYPECAST_VOICE_ID")
+    typecast_model: str = Field(default="ssfm-v30", alias="TYPECAST_MODEL")
     youtube_api_key: str = Field(default="", alias="YOUTUBE_API_KEY")
     reddit_client_id: str = Field(default="", alias="REDDIT_CLIENT_ID")
     reddit_client_secret: str = Field(default="", alias="REDDIT_CLIENT_SECRET")

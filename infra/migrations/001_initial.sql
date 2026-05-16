@@ -1,4 +1,4 @@
-﻿-- Phase 0 foundation tables.
+-- Phase 0 foundation tables.
 
 CREATE TABLE IF NOT EXISTS cost_log (
     id BIGSERIAL PRIMARY KEY,

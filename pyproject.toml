@@ -11,3 +11,7 @@ select = ["E", "F", "W", "I", "B", "UP", "ASYNC", "RUF"]
 [tool.mypy]
 strict = true
 python_version = "3.12"
+
+[[tool.mypy.overrides]]
+module = ["asyncpg", "asyncpg.*"]
+ignore_missing_imports = true

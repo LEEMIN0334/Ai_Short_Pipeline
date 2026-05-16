@@ -8,12 +8,12 @@ __pycache__/
 .coverage
 htmlcov/
 .venv/
-.local_storage/
 
 # Environment
 .env
 .env.*
 !.env.example
+.local_storage/
 
 # Build outputs
 dist/
