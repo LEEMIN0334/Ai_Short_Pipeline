@@ -13,6 +13,13 @@ from ai_shorts.agents.benchmark import (
     build_benchmark_template,
     build_benchmark_templates,
 )
+from ai_shorts.agents.ffmpeg_composer import (
+    FFmpegComposerPolicy,
+    FFmpegCompositionPlan,
+    FFmpegRenderResult,
+    build_ffmpeg_composition_plan,
+    run_ffmpeg_composition,
+)
 from ai_shorts.agents.qc_retry import QCRetryPolicy, evaluate_qc_retry
 from ai_shorts.agents.research_backend import (
     ResearchBackendPolicy,
@@ -42,6 +49,9 @@ __all__ = [
     "ASSGeneratorPolicy",
     "AnalyzerPolicy",
     "BenchmarkPolicy",
+    "FFmpegComposerPolicy",
+    "FFmpegCompositionPlan",
+    "FFmpegRenderResult",
     "QCRetryPolicy",
     "RejectedTrendItem",
     "ResearchBackendPolicy",
@@ -56,12 +66,14 @@ __all__ = [
     "analyze_trend_scout_run",
     "build_benchmark_template",
     "build_benchmark_templates",
+    "build_ffmpeg_composition_plan",
     "build_research_package",
     "curate_trends",
     "evaluate_qc_retry",
     "format_ass_timestamp",
     "generate_ass_from_split",
     "render_research_handoff",
+    "run_ffmpeg_composition",
     "run_trend_scout",
     "split_script",
     "write_script_from_benchmark",
