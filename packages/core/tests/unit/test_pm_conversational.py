@@ -94,6 +94,40 @@ async def test_pm_queues_research_task(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_pm_queues_trend_task_to_trend_scout(monkeypatch: pytest.MonkeyPatch) -> None:
+    created: list[AgentTaskCreate] = []
+
+    async def fake_enqueue_task(create: AgentTaskCreate) -> AgentTask:
+        created.append(create)
+        now = datetime(2026, 5, 16, 12, tzinfo=UTC)
+        return AgentTask(
+            task_id="task_trend_001",
+            requested_by=create.requested_by,
+            agent_id=create.agent_id,
+            command=create.command,
+            prompt=create.prompt,
+            status=AgentTaskStatus.QUEUED,
+            priority=create.priority,
+            result="",
+            metadata=create.metadata,
+            created_at=now,
+            updated_at=now,
+        )
+
+    monkeypatch.setattr(
+        "ai_shorts.agents.pm.conversational.enqueue_task",
+        fake_enqueue_task,
+    )
+
+    result = await handle_message("thread_trend_001", "/trend AI video memes")
+
+    assert "Queued task_trend_001 for trend_scout" in result
+    assert created[0].agent_id == "trend_scout"
+    assert created[0].command == "trend"
+    assert created[0].prompt == "AI video memes"
+
+
+@pytest.mark.asyncio
 async def test_pm_queues_developer_task(monkeypatch: pytest.MonkeyPatch) -> None:
     created: list[AgentTaskCreate] = []
 
@@ -246,8 +280,9 @@ async def test_research_followup_uses_latest_completed_context(
     assert "Queued task_followup_001" in result
     assert "Context: continuing from task_previous_001" in result
     assert created[0].metadata["context_task_id"] == "task_previous_001"
-    assert "Previous research task: task_previous_001" in created[0].prompt
-    assert "Follow-up research request:" in created[0].prompt
+    assert created[0].metadata["context_agent_id"] == "research_agent"
+    assert "Previous task: task_previous_001" in created[0].prompt
+    assert "Follow-up request:" in created[0].prompt
 
 
 def test_telegram_bot_splits_long_replies_without_truncating() -> None:
@@ -257,3 +292,122 @@ def test_telegram_bot_splits_long_replies_without_truncating() -> None:
     assert all(len(chunk) <= 1000 for chunk in chunks)
     assert chunks[0].startswith("[1/")
     assert chunks[-1].startswith(f"[{len(chunks)}/{len(chunks)}]")
+
+
+@pytest.mark.asyncio
+async def test_developer_followup_uses_latest_developer_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created: list[AgentTaskCreate] = []
+    now = datetime(2026, 5, 16, 12, tzinfo=UTC)
+    previous = AgentTask(
+        task_id="task_dev_previous",
+        requested_by="telegram_123456",
+        agent_id="developer_agent",
+        command="dev",
+        prompt="approval dashboard plan",
+        status=AgentTaskStatus.SUCCEEDED,
+        priority=0,
+        result="Developer plan\nFiles: dashboard.py",
+        created_at=now,
+        updated_at=now,
+    )
+
+    async def fake_get_latest_task(*args: object, **kwargs: object) -> AgentTask:
+        return previous
+
+    async def fake_enqueue_task(create: AgentTaskCreate) -> AgentTask:
+        created.append(create)
+        return AgentTask(
+            task_id="task_dev_followup",
+            requested_by=create.requested_by,
+            agent_id=create.agent_id,
+            command=create.command,
+            prompt=create.prompt,
+            status=AgentTaskStatus.QUEUED,
+            priority=create.priority,
+            result="",
+            metadata=create.metadata,
+            created_at=now,
+            updated_at=now,
+        )
+
+    monkeypatch.setattr(
+        "ai_shorts.agents.pm.conversational.get_latest_task",
+        fake_get_latest_task,
+    )
+    monkeypatch.setattr(
+        "ai_shorts.agents.pm.conversational.enqueue_task",
+        fake_enqueue_task,
+    )
+
+    result = await handle_message(
+        "telegram_123456",
+        (
+            "/dev \uc774\uc5b4\uc11c \uc2e4\ud589 \uc804 "
+            "\ub9ac\uc2a4\ud06c\ub9cc \ub354 \uc815\ub9ac\ud574\uc918"
+        ),
+    )
+
+    assert "Queued task_dev_followup for developer_agent" in result
+    assert created[0].metadata["context_task_id"] == "task_dev_previous"
+    assert created[0].metadata["context_agent_id"] == "developer_agent"
+    assert "Previous agent: developer_agent" in created[0].prompt
+
+
+@pytest.mark.asyncio
+async def test_plain_followup_uses_latest_completed_agent_task(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created: list[AgentTaskCreate] = []
+    now = datetime(2026, 5, 16, 12, tzinfo=UTC)
+    previous = AgentTask(
+        task_id="task_script_previous",
+        requested_by="telegram_123456",
+        agent_id="script_writer",
+        command="script",
+        prompt="write a hook",
+        status=AgentTaskStatus.SUCCEEDED,
+        priority=0,
+        result="Script preview\nScene 1...",
+        created_at=now,
+        updated_at=now,
+    )
+
+    async def fake_get_latest_task(*args: object, **kwargs: object) -> AgentTask:
+        return previous
+
+    async def fake_enqueue_task(create: AgentTaskCreate) -> AgentTask:
+        created.append(create)
+        return AgentTask(
+            task_id="task_plain_followup",
+            requested_by=create.requested_by,
+            agent_id=create.agent_id,
+            command=create.command,
+            prompt=create.prompt,
+            status=AgentTaskStatus.QUEUED,
+            priority=create.priority,
+            result="",
+            metadata=create.metadata,
+            created_at=now,
+            updated_at=now,
+        )
+
+    monkeypatch.setattr(
+        "ai_shorts.agents.pm.conversational.get_latest_task",
+        fake_get_latest_task,
+    )
+    monkeypatch.setattr(
+        "ai_shorts.agents.pm.conversational.enqueue_task",
+        fake_enqueue_task,
+    )
+
+    result = await handle_message(
+        "telegram_123456",
+        "\uc774\uc5b4\uc11c 2\ubc88\uc744 \ub354 \uc9e7\uac8c \ud574\uc918",
+    )
+
+    assert "Queued task_plain_followup for script_writer" in result
+    assert created[0].agent_id == "script_writer"
+    assert created[0].command == "script"
+    assert created[0].metadata["context_task_id"] == "task_script_previous"

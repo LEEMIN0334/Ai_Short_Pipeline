@@ -69,13 +69,11 @@ async def handle_message(thread_id: str, user_text: str) -> str:
         task_id = _strip_command(user_text, ["/task", "task"])
         return await _render_task(task_id)
 
-    queue_request = _agent_queue_request(user_text)
+    queue_request = await _resolve_queue_request(thread_id, user_text)
     if queue_request is not None:
-        agent_id, command, prompt = queue_request
+        agent_id, command, prompt, context_metadata = queue_request
         metadata = _task_metadata(thread_id)
-        if agent_id == "research_agent":
-            prompt, context_metadata = await _research_prompt_with_context(thread_id, prompt)
-            metadata.update(context_metadata)
+        metadata.update(context_metadata)
         task = await enqueue_task(
             AgentTaskCreate(
                 requested_by=thread_id,
@@ -146,7 +144,8 @@ def _strip_command(value: str, commands: list[str]) -> str:
 def _agent_queue_request(user_text: str) -> tuple[str, str, str] | None:
     normalized = user_text.strip().lower()
     command_map: list[tuple[tuple[str, ...], str, str]] = [
-        (("/research ", "research ", "/trend ", "trend "), "research_agent", "research"),
+        (("/research ", "research "), "research_agent", "research"),
+        (("/trend ", "trend "), "trend_scout", "trend"),
         (
             (f"/{KOREAN_SCRIPT} ", f"{KOREAN_SCRIPT} ", "/script ", "script "),
             "script_writer",
@@ -177,8 +176,10 @@ def _agent_queue_request(user_text: str) -> tuple[str, str, str] | None:
             if prompt:
                 return agent_id, command_name, prompt
 
-    if _contains_any(normalized, [KOREAN_RESEARCH, KOREAN_TREND, "research", "trend"]):
+    if _contains_any(normalized, [KOREAN_RESEARCH, "research"]):
         return "research_agent", "research", user_text.strip()
+    if _contains_any(normalized, [KOREAN_TREND, "trend"]):
+        return "trend_scout", "trend", user_text.strip()
     if _contains_any(normalized, [KOREAN_SCRIPT, KOREAN_SCRIPT_ALT, "script"]):
         return "script_writer", "script", user_text.strip()
     if _contains_any(normalized, [KOREAN_GROK, KOREAN_CLIP, "grok", "clip", "loop"]):
@@ -209,27 +210,59 @@ def _task_metadata(thread_id: str) -> dict[str, object]:
     return {"channel": "local"}
 
 
-async def _research_prompt_with_context(
+async def _resolve_queue_request(
     thread_id: str,
-    prompt: str,
-) -> tuple[str, dict[str, object]]:
-    if not _looks_like_research_followup(prompt):
-        return prompt, {}
+    user_text: str,
+) -> tuple[str, str, str, dict[str, object]] | None:
+    queue_request = _agent_queue_request(user_text)
+    if queue_request is not None:
+        agent_id, command, prompt = queue_request
+        context = await _latest_context_task(thread_id, agent_id, prompt)
+        prompt, metadata = _prompt_with_context(prompt, context)
+        return agent_id, command, prompt, metadata
+
+    prompt = user_text.strip()
+    if not _looks_like_followup(prompt):
+        return None
     previous = await get_latest_task(
         thread_id,
-        agent_id="research_agent",
         status=AgentTaskStatus.SUCCEEDED,
     )
     if previous is None or not previous.result.strip():
+        return None
+    prompt, metadata = _prompt_with_context(prompt, previous)
+    return previous.agent_id, previous.command or "followup", prompt, metadata
+
+
+async def _latest_context_task(
+    thread_id: str,
+    agent_id: str,
+    prompt: str,
+) -> AgentTask | None:
+    if not _looks_like_followup(prompt):
+        return None
+    previous = await get_latest_task(
+        thread_id,
+        agent_id=agent_id,
+        status=AgentTaskStatus.SUCCEEDED,
+    )
+    if previous is None or not previous.result.strip():
+        return None
+    return previous
+
+
+def _prompt_with_context(prompt: str, previous: AgentTask | None) -> tuple[str, dict[str, object]]:
+    if previous is None:
         return prompt, {}
-    context = _research_context_prompt(prompt, previous)
+    context = _context_prompt(prompt, previous)
     return context, {
         "context_task_id": previous.task_id,
-        "context_mode": "research_followup",
+        "context_agent_id": previous.agent_id,
+        "context_mode": "agent_followup",
     }
 
 
-def _looks_like_research_followup(prompt: str) -> bool:
+def _looks_like_followup(prompt: str) -> bool:
     normalized = " ".join(prompt.strip().lower().split())
     if not normalized:
         return False
@@ -247,22 +280,25 @@ def _looks_like_research_followup(prompt: str) -> bool:
     return len(normalized) <= 80 and any(term in normalized for term in short_reference_terms)
 
 
-def _research_context_prompt(prompt: str, previous: AgentTask) -> str:
+def _context_prompt(prompt: str, previous: AgentTask) -> str:
     previous_result = _excerpt(previous.result, limit=6000)
     return "\n".join(
         [
-            "Follow-up research request:",
+            "Follow-up request:",
             prompt.strip(),
             "",
-            f"Previous research task: {previous.task_id}",
-            f"Previous research question: {previous.prompt}",
+            f"Previous task: {previous.task_id}",
+            f"Previous agent: {previous.agent_id}",
+            f"Previous command: {previous.command}",
+            f"Previous prompt: {previous.prompt}",
             "",
-            "Previous research result excerpt:",
+            "Previous result excerpt:",
             previous_result,
             "",
-            "Use the previous research only as conversation context.",
-            "Run fresh web research for new or current factual claims.",
-            "Answer the follow-up directly, and say what changed from the previous result.",
+            "Use the previous result as conversation context.",
+            "Answer the follow-up directly.",
+            "If new factual claims are needed, refresh or verify them instead of assuming.",
+            "Say what changed from the previous result.",
         ]
     ).strip()
 
