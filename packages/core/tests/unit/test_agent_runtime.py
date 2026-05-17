@@ -13,7 +13,13 @@ from ai_shorts.agents.runtime.handlers import execute_agent_task
 from ai_shorts.agents.runtime.registry import render_agent_catalog
 from ai_shorts.agents.runtime.research_execution import run_web_research
 from ai_shorts.agents.runtime.store import AgentTask, AgentTaskStatus
-from ai_shorts.agents.runtime.telegram_notify import _telegram_token_for_task, summarize_task_result
+from ai_shorts.agents.runtime.telegram_notify import (
+    _split_message as _split_notify_message,
+)
+from ai_shorts.agents.runtime.telegram_notify import (
+    _telegram_token_for_task,
+    summarize_task_result,
+)
 
 
 def _task(agent_id: str, prompt: str, command: str = "preview") -> AgentTask:
@@ -330,3 +336,28 @@ def test_telegram_notification_uses_role_specific_bot_token(
 
     assert _telegram_token_for_task(research_task) == "research-token"
     assert _telegram_token_for_task(developer_task) == "developer-token"
+
+
+def test_long_web_research_summary_points_to_full_task_without_ellipsis() -> None:
+    task = _task("research_agent", "AI video platform pricing")
+    result = (
+        "Web research: AI video platform pricing\n"
+        "Execution status: succeeded\n"
+        "Exit code: 0\n\n"
+        + "\n".join(f"source line {index}" for index in range(500))
+    )
+
+    summary = summarize_task_result(task, result)
+
+    assert "..." not in summary
+    assert "\uc804\uccb4 \ub9ac\uc11c\uce58 \uc6d0\ubb38" in summary
+    assert f"/task {task.task_id}" in summary
+
+
+def test_telegram_notification_splits_long_messages_without_truncating() -> None:
+    chunks = _split_notify_message("alpha\n\n" + ("detail " * 900), limit=1000)
+
+    assert len(chunks) > 1
+    assert all(len(chunk) <= 1000 for chunk in chunks)
+    assert chunks[0].startswith("[1/")
+    assert chunks[-1].startswith(f"[{len(chunks)}/{len(chunks)}]")

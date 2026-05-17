@@ -9,6 +9,8 @@ from ai_shorts.agents.pm.conversational import handle_message
 from ai_shorts.agents.runtime.store import merge_task_metadata
 from ai_shorts.config import Settings, get_settings
 
+TELEGRAM_MESSAGE_LIMIT = 3500
+
 
 class TelegramBotRole(StrEnum):
     PM = "pm"
@@ -22,11 +24,19 @@ async def _send_message(
     chat_id: int,
     text: str,
 ) -> int | None:
-    response = await client.post(
-        f"https://api.telegram.org/bot{token}/sendMessage",
-        json={"chat_id": chat_id, "text": text[:3500]},
-    )
-    _raise_telegram_error(response, "sendMessage")
+    first_message_id: int | None = None
+    for chunk in _split_message(text):
+        response = await client.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": chunk},
+        )
+        _raise_telegram_error(response, "sendMessage")
+        if first_message_id is None:
+            first_message_id = _message_id(response)
+    return first_message_id
+
+
+def _message_id(response: httpx.Response) -> int | None:
     payload = response.json()
     if not isinstance(payload, dict):
         return None
@@ -174,6 +184,33 @@ def _is_control_command(lowered: str) -> bool:
 def _queued_task_id(reply: str) -> str | None:
     match = re.search(r"\bQueued\s+(task_[A-Za-z0-9]+)\b", reply)
     return match.group(1) if match else None
+
+
+def _split_message(text: str, *, limit: int = TELEGRAM_MESSAGE_LIMIT) -> list[str]:
+    clean = text.strip() or " "
+    if len(clean) <= limit:
+        return [clean]
+
+    payload_limit = max(limit - 24, 1)
+    chunks: list[str] = []
+    remaining = clean
+    while remaining:
+        if len(remaining) <= payload_limit:
+            chunks.append(remaining)
+            break
+        split_at = remaining.rfind("\n\n", 0, payload_limit)
+        if split_at < payload_limit // 2:
+            split_at = remaining.rfind("\n", 0, payload_limit)
+        if split_at < payload_limit // 2:
+            split_at = remaining.rfind(" ", 0, payload_limit)
+        if split_at < 1:
+            split_at = payload_limit
+        chunk = remaining[:split_at].rstrip()
+        chunks.append(chunk or remaining[:payload_limit])
+        remaining = remaining[split_at:].lstrip()
+
+    total = len(chunks)
+    return [f"[{index}/{total}]\n{chunk}" for index, chunk in enumerate(chunks, start=1)]
 
 
 def _start_message(role: TelegramBotRole, chat_id: int) -> str:

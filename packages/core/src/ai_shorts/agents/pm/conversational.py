@@ -3,7 +3,9 @@ from ai_shorts.agents.runtime.registry import render_agent_catalog
 from ai_shorts.agents.runtime.store import (
     AgentTask,
     AgentTaskCreate,
+    AgentTaskStatus,
     enqueue_task,
+    get_latest_task,
     get_task,
     list_tasks,
 )
@@ -22,6 +24,28 @@ KOREAN_FEATURE = "\uae30\ub2a5"
 KOREAN_ALL = "\uc804\uccb4"
 KOREAN_PIPELINE = "\ud30c\uc774\ud504\ub77c\uc778"
 KOREAN_VERIFY = "\uac80\uc99d"
+KOREAN_FOLLOWUP_TERMS = (
+    "\uc774\uc5b4\uc11c",
+    "\uacc4\uc18d",
+    "\ub354 \uc790\uc138\ud788",
+    "\uc790\uc138\ud788",
+    "\ucd94\uac00\ub85c",
+    "\uc704 \ub0b4\uc6a9",
+    "\ubc29\uae08",
+    "\uc544\uae4c",
+    "\uadf8 \uacb0\uacfc",
+    "\uadf8 \ub9ac\uc11c\uce58",
+    "\uc774 \ub9ac\uc11c\uce58",
+    "\uc774\uc804",
+    "\uc804 \ub9ac\uc11c\uce58",
+    "\uc55e\uc5d0\uc11c",
+    "1\ubc88",
+    "2\ubc88",
+    "3\ubc88",
+    "\uccab \ubc88\uc9f8",
+    "\ub450 \ubc88\uc9f8",
+    "\uc138 \ubc88\uc9f8",
+)
 
 
 async def handle_message(thread_id: str, user_text: str) -> str:
@@ -48,19 +72,27 @@ async def handle_message(thread_id: str, user_text: str) -> str:
     queue_request = _agent_queue_request(user_text)
     if queue_request is not None:
         agent_id, command, prompt = queue_request
+        metadata = _task_metadata(thread_id)
+        if agent_id == "research_agent":
+            prompt, context_metadata = await _research_prompt_with_context(thread_id, prompt)
+            metadata.update(context_metadata)
         task = await enqueue_task(
             AgentTaskCreate(
                 requested_by=thread_id,
                 agent_id=agent_id,
                 command=command,
                 prompt=prompt,
-                metadata=_task_metadata(thread_id),
+                metadata=metadata,
             )
         )
+        context_line = ""
+        if "context_task_id" in metadata:
+            context_line = f"\nContext: continuing from {metadata['context_task_id']}."
         return (
             f"Queued {task.task_id} for {task.agent_id}.\n"
             "The always-on agent worker will post progress updates here.\n"
             f"Check status with: /task {task.task_id}"
+            f"{context_line}"
         )
 
     if normalized in {"projects", "/projects", "jobs", "/jobs"}:
@@ -175,6 +207,78 @@ def _task_metadata(thread_id: str) -> dict[str, object]:
             "telegram_chat_id": thread_id.removeprefix("telegram_"),
         }
     return {"channel": "local"}
+
+
+async def _research_prompt_with_context(
+    thread_id: str,
+    prompt: str,
+) -> tuple[str, dict[str, object]]:
+    if not _looks_like_research_followup(prompt):
+        return prompt, {}
+    previous = await get_latest_task(
+        thread_id,
+        agent_id="research_agent",
+        status=AgentTaskStatus.SUCCEEDED,
+    )
+    if previous is None or not previous.result.strip():
+        return prompt, {}
+    context = _research_context_prompt(prompt, previous)
+    return context, {
+        "context_task_id": previous.task_id,
+        "context_mode": "research_followup",
+    }
+
+
+def _looks_like_research_followup(prompt: str) -> bool:
+    normalized = " ".join(prompt.strip().lower().split())
+    if not normalized:
+        return False
+    if any(term in normalized for term in KOREAN_FOLLOWUP_TERMS):
+        return True
+    if any(term in normalized for term in ("continue", "follow up", "deeper", "more detail")):
+        return True
+    short_reference_terms = (
+        "\uc774\uac70",
+        "\uadf8\uac70",
+        "\uc704",
+        "\uc774\uac83",
+        "\uadf8\uac83",
+    )
+    return len(normalized) <= 80 and any(term in normalized for term in short_reference_terms)
+
+
+def _research_context_prompt(prompt: str, previous: AgentTask) -> str:
+    previous_result = _excerpt(previous.result, limit=6000)
+    return "\n".join(
+        [
+            "Follow-up research request:",
+            prompt.strip(),
+            "",
+            f"Previous research task: {previous.task_id}",
+            f"Previous research question: {previous.prompt}",
+            "",
+            "Previous research result excerpt:",
+            previous_result,
+            "",
+            "Use the previous research only as conversation context.",
+            "Run fresh web research for new or current factual claims.",
+            "Answer the follow-up directly, and say what changed from the previous result.",
+        ]
+    ).strip()
+
+
+def _excerpt(value: str, *, limit: int) -> str:
+    clean = value.strip()
+    if len(clean) <= limit:
+        return clean
+    split_at = clean.rfind("\n\n", 0, limit)
+    if split_at < limit // 2:
+        split_at = clean.rfind("\n", 0, limit)
+    if split_at < limit // 2:
+        split_at = clean.rfind(" ", 0, limit)
+    if split_at < limit // 2:
+        split_at = limit
+    return clean[:split_at].rstrip()
 
 
 async def _render_recent_tasks() -> str:

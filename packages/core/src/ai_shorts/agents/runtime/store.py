@@ -201,6 +201,32 @@ async def get_task(task_id: str) -> AgentTask | None:
     return _task_row(row) if row is not None else None
 
 
+async def get_latest_task(
+    requested_by: str,
+    *,
+    agent_id: str | None = None,
+    status: AgentTaskStatus | None = None,
+) -> AgentTask | None:
+    async with get_conn() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT task_id, requested_by, agent_id, command, prompt, status,
+                   priority, result, error, metadata, created_at, updated_at,
+                   started_at, finished_at
+            FROM agent_task
+            WHERE requested_by = $1
+              AND ($2::text IS NULL OR agent_id = $2)
+              AND ($3::text IS NULL OR status = $3)
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            requested_by,
+            agent_id,
+            status.value if status is not None else None,
+        )
+    return _task_row(row) if row is not None else None
+
+
 async def merge_task_metadata(task_id: str, metadata: dict[str, object]) -> AgentTask:
     async with get_conn() as conn:
         row = await conn.fetchrow(

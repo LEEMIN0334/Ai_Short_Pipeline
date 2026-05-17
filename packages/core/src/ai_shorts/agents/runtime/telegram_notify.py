@@ -3,6 +3,8 @@ import httpx
 from ai_shorts.agents.runtime.store import AgentTask
 from ai_shorts.config import get_settings
 
+TELEGRAM_MESSAGE_LIMIT = 3500
+
 
 async def notify_task_progress(task: AgentTask, message: str) -> None:
     chat_id = _telegram_chat_id(task)
@@ -12,11 +14,15 @@ async def notify_task_progress(task: AgentTask, message: str) -> None:
     if not token:
         return
     await _send_telegram_chat_action(token, chat_id)
+    chunks = _split_message(message)
     message_id = _telegram_status_message_id(task)
     if message_id is not None:
-        await _edit_telegram_message(token, chat_id, message_id, _trim(message))
+        await _edit_telegram_message(token, chat_id, message_id, chunks[0])
+        for chunk in chunks[1:]:
+            await _send_telegram_message(token, chat_id, chunk)
         return
-    await _send_telegram_message(token, chat_id, _trim(message))
+    for chunk in chunks:
+        await _send_telegram_message(token, chat_id, chunk)
 
 
 def summarize_task_result(task: AgentTask, result: str) -> str:
@@ -44,8 +50,6 @@ def summarize_task_result(task: AgentTask, result: str) -> str:
     if task.agent_id == "research_agent":
         if result.startswith("Research Agent intro:"):
             return _intro_summary(task, result)
-        if result.startswith("Web research:"):
-            return _web_research_summary(task, result)
         return _web_research_summary(task, result)
 
     if task.agent_id == "script_writer":
@@ -110,7 +114,7 @@ def _strip_intro_header(result: str) -> str:
     if lines and lines[0].strip().endswith("intro:"):
         lines = lines[1:]
     body = "\n".join(line for line in lines).strip()
-    return body or "자기소개 응답을 준비했습니다."
+    return body or "자기소개 응답이 준비되었습니다."
 
 
 def _developer_execution_summary(task: AgentTask, result: str) -> str:
@@ -119,10 +123,15 @@ def _developer_execution_summary(task: AgentTask, result: str) -> str:
         status = "완료"
     elif "Execution status: blocked" in result:
         status = "보류"
-    body = _trim(result, limit=3000)
+    body, omitted = _preview(result, limit=3000)
+    note = (
+        f"\n\n전체 결과는 /task {task.task_id}에서 여러 메시지로 나눠 볼 수 있습니다."
+        if omitted
+        else ""
+    )
     return (
         f"{status}: {task.task_id}\n\n"
-        f"{body}\n\n"
+        f"{body}{note}\n\n"
         f"자세히 보기: /task {task.task_id}"
     )
 
@@ -133,10 +142,15 @@ def _web_research_summary(task: AgentTask, result: str) -> str:
         status = "완료"
     elif "Execution status: blocked" in result:
         status = "보류"
-    body = _trim(result, limit=3000)
+    body, omitted = _preview(result, limit=3000)
+    note = (
+        f"\n\n전체 리서치 원문은 /task {task.task_id}에서 여러 메시지로 나눠 볼 수 있습니다."
+        if omitted
+        else ""
+    )
     return (
         f"{status}: {task.task_id}\n\n"
-        f"{body}\n\n"
+        f"{body}{note}\n\n"
         f"자세히 보기: /task {task.task_id}"
     )
 
@@ -207,7 +221,42 @@ def _telegram_status_message_id(task: AgentTask) -> int | None:
     return None
 
 
-def _trim(message: str, limit: int = 3500) -> str:
-    if len(message) <= limit:
-        return message
-    return f"{message[: limit - 3].rstrip()}..."
+def _split_message(text: str, *, limit: int = TELEGRAM_MESSAGE_LIMIT) -> list[str]:
+    clean = text.strip() or " "
+    if len(clean) <= limit:
+        return [clean]
+
+    payload_limit = max(limit - 24, 1)
+    chunks: list[str] = []
+    remaining = clean
+    while remaining:
+        if len(remaining) <= payload_limit:
+            chunks.append(remaining)
+            break
+        split_at = remaining.rfind("\n\n", 0, payload_limit)
+        if split_at < payload_limit // 2:
+            split_at = remaining.rfind("\n", 0, payload_limit)
+        if split_at < payload_limit // 2:
+            split_at = remaining.rfind(" ", 0, payload_limit)
+        if split_at < 1:
+            split_at = payload_limit
+        chunk = remaining[:split_at].rstrip()
+        chunks.append(chunk or remaining[:payload_limit])
+        remaining = remaining[split_at:].lstrip()
+
+    total = len(chunks)
+    return [f"[{index}/{total}]\n{chunk}" for index, chunk in enumerate(chunks, start=1)]
+
+
+def _preview(message: str, *, limit: int) -> tuple[str, bool]:
+    clean = message.strip()
+    if len(clean) <= limit:
+        return clean, False
+    split_at = clean.rfind("\n\n", 0, limit)
+    if split_at < limit // 2:
+        split_at = clean.rfind("\n", 0, limit)
+    if split_at < limit // 2:
+        split_at = clean.rfind(" ", 0, limit)
+    if split_at < limit // 2:
+        split_at = limit
+    return clean[:split_at].rstrip(), True

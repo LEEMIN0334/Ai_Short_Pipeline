@@ -10,6 +10,9 @@ from ai_shorts.cli.telegram_bot import (
     _role_routed_text,
     _start_message,
 )
+from ai_shorts.cli.telegram_bot import (
+    _split_message as _split_bot_message,
+)
 
 
 @pytest.mark.asyncio
@@ -189,3 +192,68 @@ def test_telegram_start_message_does_not_queue_agent_work() -> None:
 
     assert "AI Shorts Research Bot connected" in message
     assert "chat_id=123456" in message
+
+
+@pytest.mark.asyncio
+async def test_research_followup_uses_latest_completed_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created: list[AgentTaskCreate] = []
+    now = datetime(2026, 5, 16, 12, tzinfo=UTC)
+    previous = AgentTask(
+        task_id="task_previous_001",
+        requested_by="telegram_123456",
+        agent_id="research_agent",
+        command="research",
+        prompt="original web design research",
+        status=AgentTaskStatus.SUCCEEDED,
+        priority=0,
+        result="Previous conclusion\nSource: https://example.com",
+        created_at=now,
+        updated_at=now,
+    )
+
+    async def fake_get_latest_task(*args: object, **kwargs: object) -> AgentTask:
+        return previous
+
+    async def fake_enqueue_task(create: AgentTaskCreate) -> AgentTask:
+        created.append(create)
+        return AgentTask(
+            task_id="task_followup_001",
+            requested_by=create.requested_by,
+            agent_id=create.agent_id,
+            command=create.command,
+            prompt=create.prompt,
+            status=AgentTaskStatus.QUEUED,
+            priority=create.priority,
+            result="",
+            metadata=create.metadata,
+            created_at=now,
+            updated_at=now,
+        )
+
+    monkeypatch.setattr(
+        "ai_shorts.agents.pm.conversational.get_latest_task",
+        fake_get_latest_task,
+    )
+    monkeypatch.setattr(
+        "ai_shorts.agents.pm.conversational.enqueue_task",
+        fake_enqueue_task,
+    )
+
+    result = await handle_message("telegram_123456", "/research 2번을 더 자세히 파줘")
+
+    assert "Queued task_followup_001" in result
+    assert "Context: continuing from task_previous_001" in result
+    assert created[0].metadata["context_task_id"] == "task_previous_001"
+    assert "Previous research task: task_previous_001" in created[0].prompt
+    assert "Follow-up research request:" in created[0].prompt
+
+
+def test_telegram_bot_splits_long_replies_without_truncating() -> None:
+    chunks = _split_bot_message("alpha\n\n" + ("detail " * 900), limit=1000)
+
+    assert len(chunks) > 1
+    assert all(len(chunk) <= 1000 for chunk in chunks)
+    assert chunks[0].startswith("[1/")
+    assert chunks[-1].startswith(f"[{len(chunks)}/{len(chunks)}]")
