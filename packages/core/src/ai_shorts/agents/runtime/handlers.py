@@ -9,10 +9,11 @@ from ai_shorts.agents.runtime.preview import (
     build_developer_preview,
     build_grok_prompt_preview,
     build_mvp_preview,
-    build_research_preview,
     build_script_preview,
+    build_trend_scout_preview,
 )
 from ai_shorts.agents.runtime.registry import render_agent_catalog
+from ai_shorts.agents.runtime.research_execution import run_web_research
 from ai_shorts.agents.runtime.store import AgentTask
 
 ProgressSink = Callable[[str], Awaitable[None]]
@@ -56,29 +57,26 @@ async def execute_agent_task(
             progress,
             [
                 "[1/4] 요청 분석 중: 트렌드 후보를 찾을 주제를 정리합니다.",
-                "[2/4] 소스 스캔 중: 현재 로컬 preview 신호를 수집합니다.",
+                "[2/4] 플랫폼 스캔 중: Instagram/YouTube 후보 신호를 확인합니다.",
                 "[3/4] 후보 점수화 중: 조회수, 반응, 신선도를 비교합니다.",
                 "[4/4] 중복 제거 중: Research Agent에 넘길 후보만 남깁니다.",
             ],
             delay_seconds=progress_delay_seconds,
         )
-        return await build_research_preview(prompt)
+        return await build_trend_scout_preview(prompt)
     if task.agent_id == "research_agent":
         await _emit_stages(
             progress,
             [
                 "[1/5] 요청 분석 중: 리서치 질문과 출력 목적을 파악합니다.",
-                (
-                    "[2/5] 소스 확인 중: 현재 로컬 preview 모드에서 "
-                    "Instagram/YouTube 신호를 확인합니다."
-                ),
-                "[3/5] 리서치 패키지 작성 중: 핵심 요약과 생성 가능성을 정리합니다.",
-                "[4/5] 벤치마크 구성 중: 숏츠 제작에 쓸 템플릿을 만듭니다.",
-                "[5/5] 최종 검토 중: PM에게 넘길 수 있는 상태인지 확인합니다.",
+                "[2/5] 웹 검색 중: 공개 웹 자료와 1차 출처를 찾습니다.",
+                "[3/5] 출처 검토 중: 공식 문서, 가격표, 기사, 리포트의 신뢰도를 비교합니다.",
+                "[4/5] 종합 정리 중: 확인된 사실과 가정을 분리합니다.",
+                "[5/5] 핸드오프 작성 중: PM이 결정할 항목과 다음 액션을 정리합니다.",
             ],
             delay_seconds=progress_delay_seconds,
         )
-        return await build_research_preview(prompt)
+        return await run_web_research(prompt, progress=progress)
     if task.agent_id == "script_writer":
         await _emit_stages(
             progress,
@@ -203,11 +201,11 @@ def _agent_intro(agent_id: str) -> str:
         return "\n".join(
             [
                 "Research Agent intro:",
-                "나는 AI Shorts Pipeline의 리서치 담당 하위 agent입니다.",
-                "PM Supervisor 아래에서 트렌드 후보, 참고 소스, 벤치마크 방향을 정리합니다.",
+                "나는 AI Shorts Pipeline의 순수 웹 리서치 담당 하위 agent입니다.",
+                "PM Supervisor 아래에서 공개 웹 자료를 조사하고 근거와 출처를 정리합니다.",
                 (
-                    "지금 단계에서는 로컬 preview 신호를 기반으로 조사 패키지를 만들고, "
-                    "외부 웹/API 리서치는 연결된 뒤 실제 호출 단계만 웹 검색으로 표시합니다."
+                    "Instagram/YouTube 트렌드 후보 수집은 Trend Scout가 맡고, "
+                    "나는 웹 검색, 자료 비교, 리스크 정리, PM 핸드오프를 맡습니다."
                 ),
                 (
                     "좋은 요청 예: 'AI 영상 가성비 플랫폼 조사해줘', "

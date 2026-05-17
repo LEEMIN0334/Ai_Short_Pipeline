@@ -33,15 +33,20 @@ def summarize_task_result(task: AgentTask, result: str) -> str:
             f"Details: /task {task.task_id}"
         )
 
-    if task.agent_id in {"trend_scout", "research_agent"}:
-        if result.startswith("Research Agent intro:"):
-            return _intro_summary(task, result)
+    if task.agent_id == "trend_scout":
         ready = "ready for generation" if "Ready for generation: yes" in result else "needs review"
         return (
             f"Done: {task.task_id}\n"
-            f"Conclusion: research preview is {ready}.\n"
+            f"Conclusion: trend scout preview is {ready}.\n"
             f"Details: /task {task.task_id}"
         )
+
+    if task.agent_id == "research_agent":
+        if result.startswith("Research Agent intro:"):
+            return _intro_summary(task, result)
+        if result.startswith("Web research:"):
+            return _web_research_summary(task, result)
+        return _web_research_summary(task, result)
 
     if task.agent_id == "script_writer":
         return (
@@ -109,6 +114,20 @@ def _strip_intro_header(result: str) -> str:
 
 
 def _developer_execution_summary(task: AgentTask, result: str) -> str:
+    status = "확인 필요"
+    if "Execution status: succeeded" in result:
+        status = "완료"
+    elif "Execution status: blocked" in result:
+        status = "보류"
+    body = _trim(result, limit=3000)
+    return (
+        f"{status}: {task.task_id}\n\n"
+        f"{body}\n\n"
+        f"자세히 보기: /task {task.task_id}"
+    )
+
+
+def _web_research_summary(task: AgentTask, result: str) -> str:
     status = "확인 필요"
     if "Execution status: succeeded" in result:
         status = "완료"

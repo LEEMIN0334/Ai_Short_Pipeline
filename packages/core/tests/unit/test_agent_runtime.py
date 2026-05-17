@@ -11,6 +11,7 @@ from ai_shorts.agents.runtime.developer_execution import (
 )
 from ai_shorts.agents.runtime.handlers import execute_agent_task
 from ai_shorts.agents.runtime.registry import render_agent_catalog
+from ai_shorts.agents.runtime.research_execution import run_web_research
 from ai_shorts.agents.runtime.store import AgentTask, AgentTaskStatus
 from ai_shorts.agents.runtime.telegram_notify import _telegram_token_for_task, summarize_task_result
 
@@ -56,12 +57,36 @@ def test_agent_catalog_lists_command_surface() -> None:
 
 
 @pytest.mark.asyncio
-async def test_research_agent_preview_runs_without_external_services() -> None:
+async def test_research_agent_runs_web_research(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_web_research(prompt: str, **kwargs: object) -> str:
+        return (
+            f"Web research: {prompt}\n"
+            "Execution status: succeeded\n"
+            "Exit code: 0\n\n"
+            "핵심 결론: 웹 리서치 완료\n출처: https://example.com"
+        )
+
+    monkeypatch.setattr(
+        "ai_shorts.agents.runtime.handlers.run_web_research",
+        fake_web_research,
+    )
+
     result = await execute_agent_task(_task("research_agent", "AI shorts workflow"))
 
-    assert "Research preview: AI shorts workflow" in result
-    assert "Trend Scout -> Analyzer -> Benchmark" in result
-    assert "Ready for generation: yes" in result
+    assert "Web research: AI shorts workflow" in result
+    assert "핵심 결론" in result
+    assert "Instagram" not in result
+
+
+@pytest.mark.asyncio
+async def test_trend_scout_preview_owns_platform_signals() -> None:
+    result = await execute_agent_task(_task("trend_scout", "AI shorts workflow"))
+
+    assert "Trend Scout preview: AI shorts workflow" in result
+    assert "Selected trend signals:" in result
+    assert "instagram" in result.lower()
 
 
 @pytest.mark.asyncio
@@ -155,6 +180,44 @@ async def test_developer_execution_uses_codex_runner(
 
 
 @pytest.mark.asyncio
+async def test_web_research_uses_codex_search_runner(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    async def fake_runner(
+        command: list[str],
+        cwd: Path,
+        output_path: str,
+        timeout_seconds: int,
+    ) -> tuple[int, str, str]:
+        captured["command"] = command
+        captured["cwd"] = cwd
+        captured["timeout_seconds"] = timeout_seconds
+        await asyncio.to_thread(
+            Path(output_path).write_text,
+            "핵심 결론: fake web research\n출처: https://example.com",
+            encoding="utf-8",
+        )
+        return 0, "", ""
+
+    monkeypatch.setenv("AI_SHORTS_STUDIO_ROOT", str(tmp_path))
+    monkeypatch.setenv("OPENCLAW_CODEX_APP_SERVER_BIN", executable)
+
+    result = await run_web_research("AI video platform pricing", runner=fake_runner)
+
+    command = captured["command"]
+    assert isinstance(command, list)
+    assert "exec" in command
+    assert "--search" in command
+    assert "read-only" in command
+    assert str(captured["cwd"]) == str(tmp_path)
+    assert "Execution status: succeeded" in result
+    assert "fake web research" in result
+
+
+@pytest.mark.asyncio
 async def test_agent_task_emits_progress_stages() -> None:
     messages: list[str] = []
 
@@ -201,6 +264,22 @@ def test_developer_execution_summary_includes_result_body() -> None:
 
     assert summary.startswith(f"완료: {task.task_id}")
     assert "변경 파일: tests/example.py" in summary
+    assert f"자세히 보기: /task {task.task_id}" in summary
+
+
+def test_web_research_summary_includes_result_body() -> None:
+    task = _task("research_agent", "AI video platform pricing")
+    result = (
+        "Web research: AI video platform pricing\n"
+        "Execution status: succeeded\n"
+        "Exit code: 0\n\n"
+        "핵심 결론: 웹 리서치 완료\n출처: https://example.com"
+    )
+
+    summary = summarize_task_result(task, result)
+
+    assert summary.startswith(f"완료: {task.task_id}")
+    assert "핵심 결론: 웹 리서치 완료" in summary
     assert f"자세히 보기: /task {task.task_id}" in summary
 
 

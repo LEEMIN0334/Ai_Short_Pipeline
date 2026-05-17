@@ -35,11 +35,11 @@ AGENT_DEFINITIONS: tuple[AgentDefinition, ...] = (
         agent_id="research_agent",
         display_name="Research Agent",
         capabilities=[
-            "trend_analysis",
-            "benchmark_handoff",
-            "generation_readiness",
+            "web_research",
+            "source_comparison",
+            "evidence_handoff",
         ],
-        description="Turns selected trends into a research handoff and benchmark brief.",
+        description="Searches the public web and turns evidence into a PM-ready research brief.",
     ),
     AgentDefinition(
         agent_id="script_writer",
@@ -118,7 +118,8 @@ def render_agent_catalog() -> str:
         [
             "",
             "Commands:",
-            "- /research <topic> queues Trend Scout -> Research Agent -> Benchmark",
+            "- /research <topic> queues pure web research with source links",
+            "- /trend <topic> queues platform trend scouting",
             "- /script <topic> queues Script Writer preview",
             "- /dev <feature> queues Research -> PM -> Developer implementation plan",
             "- /dev 실행 승인: <feature> lets Developer Agent execute approved code changes",

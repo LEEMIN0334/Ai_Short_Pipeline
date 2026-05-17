@@ -26,11 +26,11 @@ from ai_shorts.schemas.script import Script
 from ai_shorts.schemas.trend_item import Platform, TrendItem
 
 
-async def build_research_preview(topic: str) -> str:
+async def build_trend_scout_preview(topic: str) -> str:
     package = await _research_package(topic)
     lines = [
-        f"Research preview: {_topic(topic)}",
-        "Agents: Trend Scout -> Analyzer -> Benchmark -> Research Agent",
+        f"Trend Scout preview: {_topic(topic)}",
+        "Agents: Trend Scout -> Analyzer -> Benchmark",
         f"Ready for generation: {'yes' if package.ready_for_generation else 'no'}",
         "",
         "Selected trend signals:",
