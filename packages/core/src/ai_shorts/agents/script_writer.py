@@ -105,9 +105,9 @@ def _line_text(
     if scene.hook:
         text = scene.hook
     elif scene.index == 0:
-        text = f"{benchmark.category} 트렌드가 지금 왜 터지는지 바로 보여줄게요."
+        text = f"I'll show why this {benchmark.category} trend matters right now."
     elif scene.index == len(benchmark.scenes) - 1:
-        text = f"핵심은 이 구조예요. {benchmark.copy_button_text}."
+        text = f"This is the repeatable structure: {benchmark.copy_button_text}."
     else:
         text = _middle_scene_text(benchmark, scene, research_report)
     return _truncate(text, policy.max_line_chars)
@@ -121,8 +121,8 @@ def _middle_scene_text(
     if research_report is not None and scene.index == 1:
         return research_report.summary
     if scene.on_screen_text:
-        return f"{scene.on_screen_text}를 기준으로 장면을 빠르게 비교해요."
-    return f"{benchmark.category} 포맷의 반복 가능한 포인트를 짚어볼게요."
+        return f"Use {scene.on_screen_text} as the proof point, then move fast."
+    return f"Build the repeatable signal for {benchmark.category} in one clear beat."
 
 
 def _emphasis_cue(scene: BenchmarkScene) -> str | None:

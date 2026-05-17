@@ -25,6 +25,17 @@ node_modules/
 .next/
 out/
 
+# OpenClaw local runtime files
+infra/openclaw/openclaw.json.last-good
+infra/openclaw/plugin-skills/
+infra/openclaw/workspace/**/.openclaw/
+infra/openclaw/workspace/**/BOOTSTRAP.md
+infra/openclaw/workspace/**/HEARTBEAT.md
+infra/openclaw/workspace/**/IDENTITY.md
+infra/openclaw/workspace/**/SOUL.md
+infra/openclaw/workspace/**/TOOLS.md
+infra/openclaw/workspace/**/USER.md
+
 # OS / editors
 .DS_Store
 Thumbs.db

@@ -1,4 +1,7 @@
 {
+  gateway: {
+    mode: "local",
+  },
   agents: {
     defaults: {
       workspace: "~/.openclaw/workspace",
@@ -6,24 +9,17 @@
     list: [
       {
         id: "pm",
+        workspace: "infra/openclaw/workspace/pm",
+      },
+      {
+        id: "research",
+        workspace: "infra/openclaw/workspace/research",
+      },
+      {
+        id: "developer",
+        workspace: "infra/openclaw/workspace/developer",
       },
     ],
-  },
-  channels: {
-    telegram: {
-      dmPolicy: "pairing",
-      allowFrom: [
-        "<owner-telegram-id>",
-        "<partner-telegram-id>",
-      ],
-    },
-    slack: {
-      dmPolicy: "pairing",
-      allowFrom: [
-        "<owner-slack-id>",
-        "<partner-slack-id>",
-      ],
-    },
   },
   tools: {
     profile: "coding",

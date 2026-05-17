@@ -19,7 +19,13 @@ Echo back user messages through the Python helper. In Phase 1 and later, route w
 
 ## When the user sends a message
 
-Run this command:
+On Windows, run this command. Replace `<USER_MESSAGE>` with the exact inbound message:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "$env:AI_SHORTS_STUDIO_ROOT\scripts\pm-smoke.ps1" "openclaw_pm" "<USER_MESSAGE>"
+```
+
+On macOS/Linux, run this command:
 
 ```bash
 cd "$AI_SHORTS_STUDIO_ROOT/packages/core" && \

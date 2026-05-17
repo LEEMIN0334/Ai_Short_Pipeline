@@ -1,4 +1,7 @@
 {
+  "gateway": {
+    "mode": "local"
+  },
   "agents": {
     "defaults": {
       "workspace": "~/.openclaw/workspace"
@@ -7,25 +10,19 @@
       {
         "id": "pm",
         "name": "AI Shorts Studio PM",
-        "workspace": "pm"
+        "workspace": "infra/openclaw/workspace/pm"
+      },
+      {
+        "id": "research",
+        "name": "AI Shorts Research Agent",
+        "workspace": "infra/openclaw/workspace/research"
+      },
+      {
+        "id": "developer",
+        "name": "AI Shorts Developer Agent",
+        "workspace": "infra/openclaw/workspace/developer"
       }
     ]
-  },
-  "channels": {
-    "telegram": {
-      "dmPolicy": "pairing",
-      "allowFrom": [
-        "OWNER_TELEGRAM_ID",
-        "FRIEND_TELEGRAM_ID"
-      ]
-    },
-    "slack": {
-      "dmPolicy": "pairing",
-      "allowFrom": [
-        "OWNER_SLACK_ID",
-        "FRIEND_SLACK_ID"
-      ]
-    }
   },
   "tools": {
     "profile": "coding"

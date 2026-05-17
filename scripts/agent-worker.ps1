@@ -1,8 +1,3 @@
-param(
-    [string]$ThreadId = "local_pm_smoke",
-    [string]$Message = "ping"
-)
-
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
@@ -21,12 +16,10 @@ if (-not $Uv) {
     $Uv = "uv"
 }
 
-Push-Location (Join-Path $RepoRoot.Path "packages\core")
+Push-Location $RepoRoot.Path
 try {
-    & $Uv run python -m ai_shorts.cli.pm_smoke $ThreadId $Message
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-    }
+    & $Uv run --directory packages/core python -m ai_shorts.cli.agent_worker @args
+    exit $LASTEXITCODE
 }
 finally {
     Pop-Location

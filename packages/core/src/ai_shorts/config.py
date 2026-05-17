@@ -22,6 +22,19 @@ class Settings(BaseSettings):
     reddit_client_id: str = Field(default="", alias="REDDIT_CLIENT_ID")
     reddit_client_secret: str = Field(default="", alias="REDDIT_CLIENT_SECRET")
     reddit_user_agent: str = Field(default="ai-shorts-studio/0.1", alias="REDDIT_USER_AGENT")
+    telegram_bot_token: str = Field(default="", alias="TELEGRAM_BOT_TOKEN")
+    telegram_research_bot_token: str = Field(default="", alias="TELEGRAM_RESEARCH_BOT_TOKEN")
+    telegram_developer_bot_token: str = Field(default="", alias="TELEGRAM_DEVELOPER_BOT_TOKEN")
+    telegram_allowed_chat_ids: str = Field(default="", alias="TELEGRAM_ALLOWED_CHAT_IDS")
+    openclaw_codex_app_server_bin: str = Field(
+        default="",
+        alias="OPENCLAW_CODEX_APP_SERVER_BIN",
+    )
+    developer_codex_model: str = Field(default="gpt-5.5", alias="DEVELOPER_CODEX_MODEL")
+    developer_codex_timeout_seconds: int = Field(
+        default=900,
+        alias="DEVELOPER_CODEX_TIMEOUT_SECONDS",
+    )
 
     model_config = SettingsConfigDict(env_file=(".env", "../../.env"), extra="ignore")
 

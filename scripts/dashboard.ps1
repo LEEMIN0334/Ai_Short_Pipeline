@@ -1,6 +1,6 @@
 param(
-    [string]$ThreadId = "local_pm_smoke",
-    [string]$Message = "ping"
+    [string]$HostAddress = "0.0.0.0",
+    [int]$Port = 3000
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,9 +21,9 @@ if (-not $Uv) {
     $Uv = "uv"
 }
 
-Push-Location (Join-Path $RepoRoot.Path "packages\core")
+Push-Location $RepoRoot.Path
 try {
-    & $Uv run python -m ai_shorts.cli.pm_smoke $ThreadId $Message
+    & $Uv run --directory packages/core python -m ai_shorts.cli.dashboard --host $HostAddress --port $Port
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
     }
