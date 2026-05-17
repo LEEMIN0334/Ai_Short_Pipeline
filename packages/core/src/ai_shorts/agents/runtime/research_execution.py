@@ -37,6 +37,8 @@ async def run_web_research(
         "read-only",
         "-c",
         'approval_policy="never"',
+        "-c",
+        f'model_reasoning_effort="{settings.research_codex_reasoning_effort}"',
         "-m",
         settings.research_codex_model,
         "--output-last-message",

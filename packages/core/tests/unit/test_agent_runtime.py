@@ -212,6 +212,7 @@ async def test_web_research_uses_codex_search_runner(
     assert "exec" in command
     assert "--search" in command
     assert "read-only" in command
+    assert 'model_reasoning_effort="xhigh"' in command
     assert str(captured["cwd"]) == str(tmp_path)
     assert "Execution status: succeeded" in result
     assert "fake web research" in result

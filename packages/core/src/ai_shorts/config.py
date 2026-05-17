@@ -36,6 +36,10 @@ class Settings(BaseSettings):
         alias="DEVELOPER_CODEX_TIMEOUT_SECONDS",
     )
     research_codex_model: str = Field(default="gpt-5.5", alias="RESEARCH_CODEX_MODEL")
+    research_codex_reasoning_effort: str = Field(
+        default="xhigh",
+        alias="RESEARCH_CODEX_REASONING_EFFORT",
+    )
     research_codex_timeout_seconds: int = Field(
         default=900,
         alias="RESEARCH_CODEX_TIMEOUT_SECONDS",
