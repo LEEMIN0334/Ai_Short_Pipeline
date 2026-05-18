@@ -1,10 +1,17 @@
+import json
 from datetime import UTC, datetime
+from decimal import Decimal
 
+import httpx
+import pytest
+from ai_shorts.adapters.gemini import GeminiAdapter
 from ai_shorts.agents.script_writer import (
     ScriptWriterPolicy,
     write_script_from_benchmark,
+    write_script_with_gemini,
     write_scripts_for_package,
 )
+from ai_shorts.observability.cost_guard import CostGuardPolicy, CostGuardStatus
 from ai_shorts.schemas.benchmark_template import BenchmarkScene, BenchmarkTemplate
 from ai_shorts.schemas.research_report import ResearchReport
 
@@ -112,3 +119,105 @@ def test_write_scripts_for_package_creates_one_script_per_benchmark() -> None:
         "script-benchmark-01-instagram-ig-top",
         "script-benchmark-02-youtube-yt",
     ]
+
+
+@pytest.mark.asyncio
+async def test_write_script_with_gemini_blocks_without_confirmation() -> None:
+    adapter = GeminiAdapter(
+        api_key="test-key",
+        estimated_unit_usd=Decimal("0.50"),
+    )
+
+    result = await write_script_with_gemini(
+        _benchmark(),
+        research_report=_research_report(),
+        adapter=adapter,
+        cost_guard_policy=CostGuardPolicy(
+            auto_approve_limit_usd=Decimal("0.05"),
+            hard_limit_usd=Decimal("1.00"),
+            confirmation_phrase="APPROVE_GEMINI_SCRIPT",
+        ),
+    )
+
+    assert result.used_gemini is False
+    assert result.cost_guard.status == CostGuardStatus.REQUIRES_CONFIRMATION
+    assert result.cost_guard.confirmation_phrase == "APPROVE_GEMINI_SCRIPT"
+    assert result.script.scenes[0].lines[0].text == "This pasta reveal takes three seconds"
+    await adapter.aclose()
+
+
+@pytest.mark.asyncio
+async def test_write_script_with_gemini_uses_approved_adapter_response() -> None:
+    events: list[dict[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        events.append(payload)
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {
+                                    "text": json.dumps(
+                                        {
+                                            "title": "Gemini Pasta Loop Script",
+                                            "scenes": [
+                                                {
+                                                    "index": 0,
+                                                    "line": (
+                                                        "완성된 파스타부터 보여주고 "
+                                                        "바로 이유를 말해요."
+                                                    ),
+                                                    "emphasis_cue": "hook",
+                                                },
+                                                {
+                                                    "index": 1,
+                                                    "line": (
+                                                        "세팅이 쉬워서 누구나 같은 "
+                                                        "장면을 따라할 수 있어요."
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                        ensure_ascii=False,
+                                    )
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+        )
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    adapter = GeminiAdapter(
+        api_key="test-key",
+        model="gemini-2.0-flash",
+        client=client,
+        estimated_unit_usd=Decimal("0.01"),
+    )
+
+    result = await write_script_with_gemini(
+        _benchmark(),
+        research_report=_research_report(),
+        adapter=adapter,
+    )
+
+    assert result.used_gemini is True
+    assert result.cost_guard.status == CostGuardStatus.APPROVED
+    assert result.script.title == "Gemini Pasta Loop Script"
+    assert result.script.scenes[0].lines[0].text == "완성된 파스타부터 보여주고 바로 이유를 말해요."
+    assert result.script.scenes[1].lines[0].text == (
+        "세팅이 쉬워서 누구나 같은 장면을 따라할 수 있어요."
+    )
+    assert result.script.scenes[2].lines[0].text == (
+        "This is the repeatable structure: Copy the reveal structure."
+    )
+    assert events[0]["generationConfig"] == {
+        "temperature": 0.7,
+        "response_mime_type": "application/json",
+    }
+    await client.aclose()

@@ -1,4 +1,12 @@
-from ai_shorts.agents.final_qc import FinalQCPolicy, evaluate_final_qc
+import json
+
+import pytest
+from ai_shorts.agents.final_qc import (
+    FinalQCPolicy,
+    RenderFileQCPolicy,
+    evaluate_final_qc,
+    evaluate_render_file_qc,
+)
 from ai_shorts.schemas.composition_manifest import (
     CompositionManifest,
     CompositionSegment,
@@ -103,3 +111,95 @@ def test_evaluate_final_qc_warns_when_rendered_duration_is_missing() -> None:
 
     assert report.passed is False
     assert "Rendered duration is missing." in report.required_fixes
+
+
+@pytest.mark.asyncio
+async def test_evaluate_render_file_qc_passes_probe_metadata(tmp_path) -> None:
+    output = tmp_path / "build/final.mp4"
+    output.parent.mkdir(parents=True)
+    output.write_bytes(b"mp4")
+
+    async def runner(command: list[str]) -> str:
+        assert command[-1] == str(output)
+        return json.dumps(
+            {
+                "format": {"duration": "9.0"},
+                "streams": [
+                    {"codec_type": "video", "width": 1080, "height": 1920},
+                    {"codec_type": "audio"},
+                ],
+            }
+        )
+
+    report = await evaluate_render_file_qc(
+        _manifest(),
+        _rendered_video(),
+        target_id="approval-file-001",
+        runner=runner,
+        root=tmp_path,
+    )
+
+    assert report.target_id == "approval-file-001"
+    assert report.passed is True
+    assert report.required_fixes == []
+    assert [score.name for score in report.scores] == [
+        "output_ratio",
+        "render_file",
+        "probe_duration",
+        "probe_resolution",
+        "probe_audio",
+        "subtitles",
+        "voiceover",
+        "media_refs",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_evaluate_render_file_qc_fails_missing_file_without_probe(tmp_path) -> None:
+    called = False
+
+    async def runner(_: list[str]) -> str:
+        nonlocal called
+        called = True
+        return "{}"
+
+    report = await evaluate_render_file_qc(
+        _manifest(),
+        _rendered_video(),
+        runner=runner,
+        root=tmp_path,
+    )
+
+    assert report.passed is False
+    assert called is False
+    assert "Rendered file does not exist: build/final.mp4." in report.required_fixes
+
+
+@pytest.mark.asyncio
+async def test_evaluate_render_file_qc_fails_bad_probe_metadata(tmp_path) -> None:
+    output = tmp_path / "build/final.mp4"
+    output.parent.mkdir(parents=True)
+    output.write_bytes(b"mp4")
+
+    async def runner(_: list[str]) -> str:
+        return json.dumps(
+            {
+                "format": {"duration": "12.5"},
+                "streams": [
+                    {"codec_type": "video", "width": 1920, "height": 1080},
+                ],
+            }
+        )
+
+    report = await evaluate_render_file_qc(
+        _manifest(),
+        _rendered_video(),
+        runner=runner,
+        root=tmp_path,
+        policy=RenderFileQCPolicy(duration_tolerance_ms=100),
+    )
+
+    assert report.passed is False
+    assert any("duration drift" in fix for fix in report.required_fixes)
+    assert any("Rendered resolution must be 1080x1920" in fix for fix in report.required_fixes)
+    assert "ffprobe found no audio stream." in report.required_fixes

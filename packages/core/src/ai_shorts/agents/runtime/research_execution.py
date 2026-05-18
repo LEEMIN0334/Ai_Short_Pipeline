@@ -48,7 +48,7 @@ async def run_web_research(
 
     active_runner = runner or _run_codex_exec
     if progress is not None:
-        await progress("[웹 검색 중] Codex Research Agent가 공개 웹 자료를 조사합니다.")
+        await progress("[웹 검색] Codex Research Agent가 공개 웹 자료를 조사합니다.")
     execution: asyncio.Future[tuple[int, str, str]] = asyncio.ensure_future(
         active_runner(
             command,
@@ -63,7 +63,7 @@ async def run_web_research(
         elapsed_seconds += 15
         if progress is not None:
             await progress(
-                f"[리서치 진행 중] 웹 검색/출처 검토/요약 작성 중입니다. 경과 {elapsed_seconds}초."
+                f"[리서치 진행 중] 검색, 출처 검토, 요약 작성 중입니다. 경과 {elapsed_seconds}초"
             )
 
     exit_code, stdout, stderr = await execution
