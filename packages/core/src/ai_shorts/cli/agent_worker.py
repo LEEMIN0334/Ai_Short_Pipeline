@@ -54,7 +54,7 @@ async def run_worker(
             task,
             _running_status_message(
                 task,
-                "시작 준비 중: 큐에서 작업을 가져왔고 담당 agent를 깨우는 중입니다.",
+                "시작 준비 중입니다. 작업을 가져왔고 담당 agent를 깨우는 중입니다.",
             ),
         )
 
@@ -119,7 +119,7 @@ def _running_status_message(task: AgentTask, status: str) -> str:
             "",
             status,
             "",
-            "결과가 준비되면 이 메시지는 최종 결론으로 바뀝니다.",
+            "결과가 준비되면 이 메시지를 최종 결론으로 바꿉니다.",
         ]
     )
 

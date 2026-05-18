@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
@@ -42,6 +43,14 @@ class FFmpegRenderResult(BaseModel):
     script_id: str
     output_uri: str
     commands_executed: int = Field(ge=0)
+    concat_file_uri: str
+    output_exists: bool = False
+
+
+class FFmpegRenderFiles(BaseModel):
+    concat_file_path: str
+    output_path: str
+    prepared_directories: list[str]
 
 
 def build_ffmpeg_composition_plan(
@@ -92,18 +101,55 @@ async def run_ffmpeg_composition(
     plan: FFmpegCompositionPlan,
     *,
     runner: FFmpegRunner | None = None,
+    prepare_files: bool = False,
+    verify_output: bool = False,
+    root: Path | None = None,
 ) -> FFmpegRenderResult:
     """Run every FFmpeg command in a composition plan."""
+
+    if prepare_files:
+        prepare_ffmpeg_render_files(plan, root=root)
 
     active_runner = runner or _run_subprocess
     for segment_command in plan.segment_commands:
         await active_runner(segment_command.command)
     await active_runner(plan.final_command)
 
+    output_exists = _resolve_uri(plan.output_uri, root=root).exists()
+    if verify_output and not output_exists:
+        msg = f"FFmpeg output was not created: {plan.output_uri}"
+        raise RuntimeError(msg)
+
     return FFmpegRenderResult(
         script_id=plan.script_id,
         output_uri=plan.output_uri,
+        concat_file_uri=plan.concat_file_uri,
         commands_executed=len(plan.segment_commands) + 1,
+        output_exists=output_exists,
+    )
+
+
+def prepare_ffmpeg_render_files(
+    plan: FFmpegCompositionPlan,
+    *,
+    root: Path | None = None,
+) -> FFmpegRenderFiles:
+    """Create render directories and write the FFmpeg concat file."""
+
+    prepared_directories: set[Path] = set()
+    concat_file = _resolve_uri(plan.concat_file_uri, root=root)
+    output_file = _resolve_uri(plan.output_uri, root=root)
+
+    _mkdir(concat_file.parent, prepared_directories)
+    _mkdir(output_file.parent, prepared_directories)
+    for segment_command in plan.segment_commands:
+        _mkdir(_resolve_uri(segment_command.output_uri, root=root).parent, prepared_directories)
+
+    concat_file.write_text(plan.concat_file_body, encoding="utf-8")
+    return FFmpegRenderFiles(
+        concat_file_path=str(concat_file),
+        output_path=str(output_file),
+        prepared_directories=sorted(str(path) for path in prepared_directories),
     )
 
 
@@ -203,3 +249,15 @@ async def _run_subprocess(command: list[str]) -> None:
     _, stderr = await process.communicate()
     if process.returncode != 0:
         raise RuntimeError(f"FFmpeg command failed: {stderr.decode(errors='replace')}")
+
+
+def _resolve_uri(uri: str, *, root: Path | None) -> Path:
+    path = Path(uri)
+    if path.is_absolute():
+        return path
+    return (root or Path.cwd()) / path
+
+
+def _mkdir(path: Path, prepared_directories: set[Path]) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    prepared_directories.add(path)

@@ -83,7 +83,8 @@ async def run_developer_execution(
     active_runner = runner or _run_codex_exec
     if progress is not None:
         await progress(
-            "[실행] Codex Developer Agent를 시작합니다. 실제 repo 파일을 수정할 수 있습니다."
+            "[실행] Codex Developer Agent를 시작합니다. "
+            "승인된 범위 안에서 repo 파일을 수정할 수 있습니다."
         )
     execution: asyncio.Future[tuple[int, str, str]] = asyncio.ensure_future(
         active_runner(
@@ -99,7 +100,7 @@ async def run_developer_execution(
         elapsed_seconds += 15
         if progress is not None:
             await progress(
-                f"[실행 중] Codex가 코드 수정/검증을 진행 중입니다. 경과 {elapsed_seconds}초."
+                f"[실행 중] Codex가 코드 수정과 검증을 진행하고 있습니다. 경과 {elapsed_seconds}초"
             )
     exit_code, stdout, stderr = await execution
     final_message = _read_output(output_path) or _fallback_output(stdout, stderr)

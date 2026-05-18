@@ -111,9 +111,7 @@ def render_agent_catalog() -> str:
     lines = ["Agents ready for always-on runtime:"]
     for definition in AGENT_DEFINITIONS:
         capabilities = ", ".join(definition.capabilities)
-        lines.append(
-            f"- {definition.agent_id}: {definition.display_name} ({capabilities})"
-        )
+        lines.append(f"- {definition.agent_id}: {definition.display_name} ({capabilities})")
     lines.extend(
         [
             "",

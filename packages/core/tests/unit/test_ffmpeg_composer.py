@@ -2,6 +2,7 @@ import pytest
 from ai_shorts.agents.ffmpeg_composer import (
     FFmpegComposerPolicy,
     build_ffmpeg_composition_plan,
+    prepare_ffmpeg_render_files,
     run_ffmpeg_composition,
 )
 from ai_shorts.schemas.composition_manifest import (
@@ -117,6 +118,19 @@ def test_build_ffmpeg_composition_plan_rejects_invalid_timing() -> None:
         build_ffmpeg_composition_plan(manifest, output_uri="out.mp4")
 
 
+def test_prepare_ffmpeg_render_files_writes_concat_and_directories(tmp_path) -> None:
+    plan = build_ffmpeg_composition_plan(_manifest(), output_uri="build/final.mp4")
+
+    files = prepare_ffmpeg_render_files(plan, root=tmp_path)
+
+    concat_file = tmp_path / "build/composition/script-01-concat.txt"
+    assert files.concat_file_path == str(concat_file)
+    assert files.output_path == str(tmp_path / "build/final.mp4")
+    assert concat_file.read_text(encoding="utf-8") == plan.concat_file_body
+    assert (tmp_path / "build/composition").is_dir()
+    assert (tmp_path / "build").is_dir()
+
+
 @pytest.mark.asyncio
 async def test_run_ffmpeg_composition_uses_injected_runner() -> None:
     plan = build_ffmpeg_composition_plan(_manifest(), output_uri="build/final.mp4")
@@ -135,3 +149,47 @@ async def test_run_ffmpeg_composition_uses_injected_runner() -> None:
         plan.segment_commands[1].command,
         plan.final_command,
     ]
+    assert result.concat_file_uri == plan.concat_file_uri
+    assert result.output_exists is False
+
+
+@pytest.mark.asyncio
+async def test_run_ffmpeg_composition_prepares_files_and_verifies_output(tmp_path) -> None:
+    plan = build_ffmpeg_composition_plan(_manifest(), output_uri="build/final.mp4")
+    commands: list[list[str]] = []
+
+    async def runner(command: list[str]) -> None:
+        commands.append(command)
+        if command == plan.final_command:
+            output = tmp_path / plan.output_uri
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_bytes(b"mp4")
+
+    result = await run_ffmpeg_composition(
+        plan,
+        runner=runner,
+        prepare_files=True,
+        verify_output=True,
+        root=tmp_path,
+    )
+
+    assert (tmp_path / plan.concat_file_uri).read_text(encoding="utf-8") == plan.concat_file_body
+    assert result.output_exists is True
+    assert commands[-1] == plan.final_command
+
+
+@pytest.mark.asyncio
+async def test_run_ffmpeg_composition_verify_output_fails_when_missing(tmp_path) -> None:
+    plan = build_ffmpeg_composition_plan(_manifest(), output_uri="build/final.mp4")
+
+    async def runner(_: list[str]) -> None:
+        return
+
+    with pytest.raises(RuntimeError, match="FFmpeg output was not created"):
+        await run_ffmpeg_composition(
+            plan,
+            runner=runner,
+            prepare_files=True,
+            verify_output=True,
+            root=tmp_path,
+        )

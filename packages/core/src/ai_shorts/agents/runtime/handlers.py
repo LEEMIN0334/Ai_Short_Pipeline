@@ -31,9 +31,9 @@ async def execute_agent_task(
         await _emit_stages(
             progress,
             [
-                "[1/3] 요청 확인 중: 자기소개 요청으로 인식했습니다.",
-                "[2/3] 역할 정리 중: agent의 담당 범위와 PM 연결 방식을 확인합니다.",
-                "[3/3] 응답 작성 중: 사용자가 바로 이해할 수 있게 짧게 정리합니다.",
+                "[1/3] 요청을 확인했습니다. 자기소개 요청으로 인식했습니다.",
+                "[2/3] 역할과 PM 연결 방식을 정리하고 있습니다.",
+                "[3/3] 사용자가 바로 이해할 수 있게 답변을 작성합니다.",
             ],
             delay_seconds=progress_delay_seconds,
         )
@@ -43,11 +43,11 @@ async def execute_agent_task(
         await _emit_stages(
             progress,
             [
-                "[1/5] 요청 분석 중: PM이 목표와 필요한 하위 agent를 정리합니다.",
-                "[2/5] 리서치 준비 중: Trend Scout와 Research Agent 작업 범위를 잡습니다.",
-                "[3/5] 대본 구성 중: Script Writer와 Splitter가 장면 구조를 만듭니다.",
-                "[4/5] 조립 계획 중: Composer가 자막, 음성, 영상 결합 계획을 확인합니다.",
-                "[5/5] 최종 검수 중: QC Agent가 승인/재시도 게이트를 점검합니다.",
+                "[1/5] 요청을 분석하고 목표와 필요한 하위 agent를 정리합니다.",
+                "[2/5] Trend Scout와 Research Agent의 작업 범위를 잡습니다.",
+                "[3/5] Script Writer와 Splitter가 쓸 장면 구조를 준비합니다.",
+                "[4/5] Composer가 자막, 음성, 영상 결합 계획을 확인합니다.",
+                "[5/5] QC Agent가 승인 또는 재시도 기준을 평가합니다.",
             ],
             delay_seconds=progress_delay_seconds,
         )
@@ -56,10 +56,10 @@ async def execute_agent_task(
         await _emit_stages(
             progress,
             [
-                "[1/4] 요청 분석 중: 트렌드 후보를 찾을 주제를 정리합니다.",
-                "[2/4] 플랫폼 스캔 중: Instagram/YouTube 후보 신호를 확인합니다.",
-                "[3/4] 후보 점수화 중: 조회수, 반응, 신선도를 비교합니다.",
-                "[4/4] 중복 제거 중: Research Agent에 넘길 후보만 남깁니다.",
+                "[1/4] 요청을 분석하고 트렌드 후보를 찾을 주제를 정리합니다.",
+                "[2/4] Instagram/YouTube 후보 신호를 확인합니다.",
+                "[3/4] 조회수, 반응, 최신성을 기준으로 후보를 점수화합니다.",
+                "[4/4] 중복을 제거하고 Research Agent에 넘길 후보만 남깁니다.",
             ],
             delay_seconds=progress_delay_seconds,
         )
@@ -68,11 +68,11 @@ async def execute_agent_task(
         await _emit_stages(
             progress,
             [
-                "[1/5] 요청 분석 중: 리서치 질문과 출력 목적을 파악합니다.",
-                "[2/5] 웹 검색 중: 공개 웹 자료와 1차 출처를 찾습니다.",
-                "[3/5] 출처 검토 중: 공식 문서, 가격표, 기사, 리포트의 신뢰도를 비교합니다.",
-                "[4/5] 종합 정리 중: 확인된 사실과 가정을 분리합니다.",
-                "[5/5] 핸드오프 작성 중: PM이 결정할 항목과 다음 액션을 정리합니다.",
+                "[1/5] 요청을 분석하고 리서치 질문과 출력 목적을 파악합니다.",
+                "[2/5] 공개 웹 자료와 1차 출처를 찾습니다.",
+                "[3/5] 공식 문서, 가격표, 기사, 리포트의 신뢰도를 비교합니다.",
+                "[4/5] 확인된 사실과 가정을 분리해 종합합니다.",
+                "[5/5] PM이 결정할 항목과 다음 액션을 정리합니다.",
             ],
             delay_seconds=progress_delay_seconds,
         )
@@ -81,10 +81,10 @@ async def execute_agent_task(
         await _emit_stages(
             progress,
             [
-                "[1/4] 요청 분석 중: 대본의 훅과 장면 목적을 정리합니다.",
-                "[2/4] 대본 작성 중: Script Writer가 짧은 장면 단위로 초안을 만듭니다.",
-                "[3/4] 세그먼트 분리 중: Splitter가 TTS/자막 타이밍을 준비합니다.",
-                "[4/4] 최종 검토 중: 장면 길이와 전달 흐름을 확인합니다.",
+                "[1/4] 요청을 분석하고 대본의 톤과 장면 목적을 정리합니다.",
+                "[2/4] benchmark 구조를 바탕으로 장면 단위 초안을 만듭니다.",
+                "[3/4] Splitter가 TTS와 자막 타임라인을 준비합니다.",
+                "[4/4] 장면 길이와 전달 흐름을 검토합니다.",
             ],
             delay_seconds=progress_delay_seconds,
         )
@@ -94,11 +94,11 @@ async def execute_agent_task(
             await _emit_stages(
                 progress,
                 [
-                    "[1/5] 실행 승인 확인 중: 명시적인 개발 실행 요청을 확인했습니다.",
-                    "[2/5] 안전 게이트 확인 중: secret, push, reset 금지 규칙을 적용합니다.",
-                    "[3/5] Codex 실행 준비 중: repo 작업공간과 테스트 기준을 설정합니다.",
-                    "[4/5] 실제 개발 실행 중: 파일 수정과 검증을 진행합니다.",
-                    "[5/5] 자기검수 중: 변경 범위, 테스트, 잔여 리스크를 정리합니다.",
+                    "[1/5] 명시적인 개발 실행 승인 요청을 확인했습니다.",
+                    "[2/5] secret, push, reset 금지 규칙을 적용합니다.",
+                    "[3/5] repo 작업공간과 테스트 기준을 준비합니다.",
+                    "[4/5] 승인된 범위 안에서 파일 수정과 검증을 진행합니다.",
+                    "[5/5] 변경 범위, 테스트, 남은 리스크를 정리합니다.",
                 ],
                 delay_seconds=progress_delay_seconds,
             )
@@ -109,12 +109,12 @@ async def execute_agent_task(
         await _emit_stages(
             progress,
             [
-                "[1/6] 요청 분석 중: 개발 요청의 목적과 변경 범위를 파악합니다.",
-                "[2/6] 리서치 확인 중: Research Agent의 배경 조사와 리스크를 먼저 검토합니다.",
-                "[3/6] PM 게이트 확인 중: 바로 개발하지 않고 승인 조건을 정리합니다.",
-                "[4/6] 구현 계획 중: 바꿀 파일, 테스트, 롤백 범위를 좁힙니다.",
-                "[5/6] 검증 계획 중: ruff, mypy, pytest와 수동 확인 포인트를 세웁니다.",
-                "[6/6] 자기검수 중: secret 유출, 과한 리팩터링, 누락 테스트를 확인합니다.",
+                "[1/6] 개발 요청의 목적과 변경 범위를 파악합니다.",
+                "[2/6] Research Agent의 배경 조사 필요성을 검토합니다.",
+                "[3/6] 바로 개발하지 않고 PM 승인 조건을 정리합니다.",
+                "[4/6] 바뀔 파일, 테스트, 롤백 범위를 좁힙니다.",
+                "[5/6] ruff, mypy, pytest 검증 계획을 준비합니다.",
+                "[6/6] secret 노출, 과한 리팩터링, 누락 테스트를 점검합니다.",
             ],
             delay_seconds=progress_delay_seconds,
         )
@@ -123,10 +123,10 @@ async def execute_agent_task(
         await _emit_stages(
             progress,
             [
-                "[1/4] 요청 분석 중: 10-15초 루프형 클립 목표를 정리합니다.",
-                "[2/4] 프롬프트 구성 중: 첫 프레임과 마지막 프레임이 맞도록 설계합니다.",
-                "[3/4] 일관성 점검 중: 인물, 카메라, 배경 유지 조건을 확인합니다.",
-                "[4/4] 수동 생성 가이드 작성 중: Grok에서 바로 넣을 문장을 준비합니다.",
+                "[1/4] 요청을 분석하고 10-15초 루프 클립 목표를 정리합니다.",
+                "[2/4] 첫 프레임과 마지막 프레임이 자연스럽게 이어지도록 설계합니다.",
+                "[3/4] 인물, 카메라, 배경 유지 조건을 점검합니다.",
+                "[4/4] Grok에 바로 넣을 수 있는 수동 생성 가이드를 작성합니다.",
             ],
             delay_seconds=progress_delay_seconds,
         )
@@ -135,10 +135,10 @@ async def execute_agent_task(
         await _emit_stages(
             progress,
             [
-                "[1/4] 요청 분석 중: 사용할 영상/음성/자막 흐름을 확인합니다.",
-                "[2/4] 자막 계획 중: 세그먼트와 ASS 자막 구조를 준비합니다.",
-                "[3/4] FFmpeg 계획 중: 세로 영상 조립 명령을 구성합니다.",
-                "[4/4] QC 확인 중: 출력 길이와 승인 게이트를 점검합니다.",
+                "[1/4] 사용할 영상, 음성, 자막 흐름을 확인합니다.",
+                "[2/4] 세그먼트와 ASS 자막 구조를 준비합니다.",
+                "[3/4] 세로 영상 조립을 위한 FFmpeg 명령 계획을 구성합니다.",
+                "[4/4] 출력 길이와 승인 기준을 QC 관점에서 확인합니다.",
             ],
             delay_seconds=progress_delay_seconds,
         )
@@ -147,10 +147,10 @@ async def execute_agent_task(
         await _emit_stages(
             progress,
             [
-                "[1/4] 요청 분석 중: 검수할 산출물과 기준을 확인합니다.",
-                "[2/4] 품질 확인 중: 길이, 자막, 음성 계획을 점검합니다.",
-                "[3/4] 재시도 판단 중: 수정이 필요한 위험을 찾습니다.",
-                "[4/4] 결론 작성 중: 승인 또는 재작업 결정을 정리합니다.",
+                "[1/4] 검토할 산출물과 기준을 확인합니다.",
+                "[2/4] 길이, 자막, 음성 계획을 평가합니다.",
+                "[3/4] 재시도 필요 여부와 수정 위험을 찾습니다.",
+                "[4/4] 승인 또는 재작업 결론을 정리합니다.",
             ],
             delay_seconds=progress_delay_seconds,
         )
@@ -190,8 +190,8 @@ def _is_self_intro_prompt(prompt: str) -> bool:
             "who are you",
             "self intro",
             "자기소개",
-            "너누구",
-            "뭐하는",
+            "넌 누구",
+            "뭐 하는",
         ]
     )
 
@@ -201,15 +201,15 @@ def _agent_intro(agent_id: str) -> str:
         return "\n".join(
             [
                 "Research Agent intro:",
-                "나는 AI Shorts Pipeline의 순수 웹 리서치 담당 하위 agent입니다.",
+                "저는 AI Shorts Pipeline의 리서치 담당 하위 agent입니다.",
                 "PM Supervisor 아래에서 공개 웹 자료를 조사하고 근거와 출처를 정리합니다.",
                 (
                     "Instagram/YouTube 트렌드 후보 수집은 Trend Scout가 맡고, "
-                    "나는 웹 검색, 자료 비교, 리스크 정리, PM 핸드오프를 맡습니다."
+                    "저는 웹 검색, 자료 비교, 리스크 정리, PM 핸드오프를 맡습니다."
                 ),
                 (
-                    "좋은 요청 예: 'AI 영상 가성비 플랫폼 조사해줘', "
-                    "'Grok 10초 루프 쇼츠 사례 리서치해줘'."
+                    "좋은 요청 예: 'AI 영상 생성비용 트렌드 조사해줘', "
+                    "'Grok 10초 루프 활용 사례 리서치해줘'."
                 ),
             ]
         )
@@ -217,12 +217,12 @@ def _agent_intro(agent_id: str) -> str:
         return "\n".join(
             [
                 "Developer Agent intro:",
-                "나는 AI Shorts Pipeline의 개발 담당 하위 agent입니다.",
+                "저는 AI Shorts Pipeline의 개발 담당 하위 agent입니다.",
                 (
-                    "Research Agent와 PM Supervisor가 방향을 잡은 뒤에만 구현 계획을 세우고, "
-                    "승인 후 코드 변경으로 넘어갑니다."
+                    "Research Agent와 PM Supervisor가 방향을 정한 뒤에만 구현 계획을 세우고, "
+                    "명시적인 승인 후 코드 변경으로 넘어갑니다."
                 ),
-                "항상 변경 범위, 테스트 계획, secret 유출 여부, 자기검수 결과를 같이 확인합니다.",
+                "항상 변경 범위, 테스트 계획, secret 노출 여부, 자기검토 결과를 함께 확인합니다.",
                 (
                     "좋은 요청 예: '대시보드에 승인 버튼 추가 기획해줘', "
                     "'Telegram 진행 상태 UI 개선 개발해줘'."
@@ -232,9 +232,9 @@ def _agent_intro(agent_id: str) -> str:
     return "\n".join(
         [
             f"{agent_id} intro:",
-            "나는 AI Shorts Pipeline의 always-on agent 중 하나입니다.",
+            "저는 AI Shorts Pipeline의 always-on agent 중 하나입니다.",
             (
-                "PM Supervisor와 연결되어 요청을 작업 단위로 나누고, "
+                "PM Supervisor와 연결되어 요청을 작업 단위로 나누고 "
                 "진행 상태와 최종 결론을 Telegram에 남깁니다."
             ),
         ]
